@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "preset": "morning",
+  "motion": {
+    "reducedMotion": false
+  },
+  "integration": {
+    "idleEnabled": false
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "dailen.omarchasaurus",
+  "name": "Omarchasaurus",
+  "version": "0.1.0",
+  "author": "Dailen Gunter",
+  "license": "MIT",
+  "description": "A truecolor ASCII dinosaur valley inside a real terminal, with a tray control room. Manual start only; idle integration is off.",
+  "kinds": ["service", "overlay"],
+  "keepLoaded": true,
+  "entryPoints": {"service": "Service.qml", "overlay": "Config.qml"}
+}

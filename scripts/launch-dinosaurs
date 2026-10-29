@@ -1,0 +1,437 @@
+#!/usr/bin/env python3
+"""Manual, owned terminal sessions; run with python3 (no executable bit needed)."""
+import argparse
+import fcntl
+import json
+import os
+from pathlib import Path
+import re
+import secrets
+import shutil
+import signal
+import socket
+import stat
+import struct
+import subprocess
+import sys
+import time
+
+from event_preview import EVENTS
+from bounded_process import exited, finish_group, finish_groups, run_bounded
+from safe_io import (Directory, atomic_json, diagnostic, open_file, parse_json,
+                     read_json, remove_session, remove_socket, writer_lock)
+from session_control import ControlServer
+
+PLUGIN = Path(__file__).resolve().parent.parent
+UID = os.getuid()
+SAFE_NAME = re.compile(r"[A-Za-z0-9_.-]+\Z")
+
+
+def runtime_directory():
+    value = os.environ.get("XDG_RUNTIME_DIR")
+    if not value or not Path(value).is_absolute():
+        raise ValueError("XDG_RUNTIME_DIR must name this user's private runtime directory")
+    with Directory.open(value, private=True) as base:
+        try:
+            os.mkdir("omarchasaurus-terminal", 0o700, dir_fd=base.fd)
+        except FileExistsError:
+            pass
+        return base.child("omarchasaurus-terminal")
+
+
+def hypr(*args):
+    return run_bounded(["hyprctl", *args])
+
+
+def object_list(text, label, count=1024):
+    value = parse_json(text, limit=1024 * 1024)
+    if not isinstance(value, list) or len(value) > count or any(not isinstance(item, dict) for item in value):
+        raise ValueError("Unexpected " + label + " list")
+    return value
+
+
+def hypr_objects(kind):
+    objects = object_list(hypr(kind, "-j"), "Hyprland " + kind, 64 if kind == "monitors" else 1024)
+    if kind == "monitors":
+        for monitor in objects:
+            for key in ("activeWorkspace", "specialWorkspace"):
+                workspace = monitor.get(key, {})
+                if not isinstance(workspace, dict):
+                    raise ValueError("Invalid Hyprland workspace")
+                if "name" in workspace and not isinstance(workspace["name"], str):
+                    raise ValueError("Invalid Hyprland workspace name")
+            active = monitor.get("activeWorkspace", {})
+            if "id" in active and (type(active["id"]) is not int or not -(2**31) <= active["id"] < 2**31):
+                raise ValueError("Invalid Hyprland workspace ID")
+    return objects
+
+
+def focus_monitor(name):
+    try:
+        hypr("dispatch", 'hl.dsp.focus({ monitor = "' + name + '" })')
+    except ValueError:
+        hypr("dispatch", "focusmonitor", name)
+
+
+def terminal_command(renderer_args, preview, output):
+    title = "Omarchasaurus" + (" Preview" if preview else "") + " · " + output
+    app_class = "org.omarchy.omarchasaurus.preview" if preview else "org.omarchy.screensaver"
+    # Explicit separate instances retain ownership instead of forwarding to an
+    # unrelated existing terminal. Overrides affect these windows, never files.
+    if shutil.which("ghostty"):
+        return ["ghostty", "--gtk-single-instance=false", "--linux-cgroup=never",
+                "--class=" + app_class, "--title=" + title,
+                "--window-padding-x=0", "--window-padding-y=0",
+                "--background-opacity=1", "--window-decoration=false",
+                "--confirm-close-surface=false", "-e", *renderer_args]
+    if shutil.which("kitty"):
+        return ["kitty", "--class=" + app_class, "--title=" + title,
+                "--override", "window_padding_width=0",
+                "--override", "background_opacity=1", "--override", "hide_window_decorations=yes",
+                "--override", "confirm_os_window_close=0", "-e", *renderer_args]
+    raise ValueError("Omarchasaurus needs Ghostty or Kitty on PATH")
+
+
+
+
+def place_window(child, monitor, preview, stopping, fullscreen=False):
+    deadline = time.monotonic() + 8
+    while time.monotonic() < deadline and not stopping():
+        if exited(child):
+            raise ValueError(f"Terminal exited before opening on {monitor['name']}")
+        for client in hypr_objects("clients"):
+            if client.get("pid") != child.pid:
+                continue
+            address = client.get("address", "")
+            if not isinstance(address, str) or len(address) > 40 or not re.fullmatch(r"0x[0-9a-fA-F]+", address):
+                continue
+            if preview:
+                # A tray/layer-shell launch has no terminal workspace to inherit.
+                special = monitor.get("specialWorkspace", {}).get("name", "")
+                workspace = special if len(special) <= 160 and re.fullmatch(r"special:[A-Za-z0-9_.-]+", special) else None
+                if workspace is None:
+                    active = monitor.get("activeWorkspace", {}).get("id")
+                    if type(active) is not int:
+                        raise ValueError("Missing Hyprland workspace ID")
+                    workspace = str(active)
+                window = 'hl.get_window("address:' + address + '")'
+                try:
+                    hypr("dispatch", 'hl.dsp.window.move({ workspace = "' + workspace + '", follow = false, window = ' + window + ' })')
+                    hypr("dispatch", 'hl.dsp.focus({ window = ' + window + ' })')
+                except ValueError:
+                    hypr("dispatch", "movetoworkspacesilent", workspace + ",address:" + address)
+                    hypr("dispatch", "focuswindow", "address:" + address)
+                if fullscreen:
+                    hypr("dispatch", 'hl.dsp.window.fullscreen({ mode = "fullscreen", action = "set", window = ' + window + ' })')
+            else:
+                # As in Omarcharium, share an already-visible scratchpad so its
+                # contents are still there after our owned window disappears.
+                special = monitor.get("specialWorkspace", {}).get("name", "")
+                workspace = special if len(special) <= 160 and re.fullmatch(r"special:[A-Za-z0-9_.-]+", special) else "special:screensaver-omarchasaurus-" + monitor["name"]
+                try:
+                    hypr("dispatch", 'hl.dsp.window.move({ workspace = "' + workspace + '", follow = false, window = "address:' + address + '" })')
+                except ValueError:
+                    hypr("dispatch", "movetoworkspacesilent", workspace + ",address:" + address)
+                focus_monitor(monitor["name"])
+                active = next((m for m in hypr_objects("monitors") if m.get("name") == monitor["name"]), {})
+                if active.get("specialWorkspace", {}).get("name") != workspace:
+                    try:
+                        hypr("dispatch", 'hl.dsp.workspace.toggle_special("' + workspace.removeprefix("special:") + '")')
+                    except ValueError:
+                        hypr("dispatch", "togglespecialworkspace", workspace.removeprefix("special:"))
+            return
+        time.sleep(0.08)
+    if not stopping():
+        raise ValueError("Timed out waiting for owned terminal on " + monitor["name"])
+
+
+def coordinate(mode, fullscreen=False, test_event=None):
+    with runtime_directory() as root:
+        lock = open_file(root.fd, mode + ".lock", os.O_RDWR, private=True, create=True)
+        try:
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                if test_event is not None:
+                    print("An Omarchasaurus preview is already running; Surface the existing preview first, then test the event",
+                          file=sys.stderr, flush=True)
+                    return 1
+                print("An Omarchasaurus " + mode + " session is already running", flush=True)
+                return 0
+            return run_session(root, mode, fullscreen, test_event)
+        finally:
+            os.close(lock)
+
+
+def run_session(root, mode, fullscreen, test_event):
+    session = None
+    server = None
+    children = []
+    stop_requested = False
+    endpoint = mode + ".sock"
+    endpoint_identity = None
+    old_handlers = {}
+    focused_name = None
+
+    def stop_signal(signum, frame):
+        nonlocal stop_requested
+        stop_requested = True
+
+    def control():
+        nonlocal stop_requested
+        stop_requested = server.poll(stop_requested)
+        return stop_requested
+
+    try:
+        remove_socket(root.fd, endpoint)
+        listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        server = ControlServer(listener, mode)
+        mask = os.umask(0o177)  # AF_UNIX starts at 0777; create exactly 0600.
+        try:
+            listener.bind(root.proc_path + "/" + endpoint)
+        finally:
+            os.umask(mask)
+        info = os.stat(endpoint, dir_fd=root.fd, follow_symlinks=False)
+        if not stat.S_ISSOCK(info.st_mode) or info.st_uid != UID or info.st_mode & 0o077:
+            raise ValueError("Refusing unsafe session control socket")
+        endpoint_identity = (info.st_dev, info.st_ino)
+        listener.listen(8)
+        listener.setblocking(False)
+        for signum in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+            old_handlers[signum] = signal.signal(signum, stop_signal)
+        if not shutil.which("hyprctl"):
+            raise ValueError("Hyprland and hyprctl are required")
+        monitors = hypr_objects("monitors")
+        monitors = [m for m in monitors if not m.get("disabled") and
+                    isinstance(m.get("name"), str) and len(m["name"]) <= 128 and SAFE_NAME.fullmatch(m["name"])]
+        if not monitors:
+            raise ValueError("No safe active Hyprland output found")
+        focused = next((m for m in monitors if m.get("focused")), monitors[0])
+        focused_name = focused["name"]
+        preview = mode == "preview"
+        targets = [focused] if preview else monitors
+        session = root.child(mode + "-" + secrets.token_hex(16), create=True)
+        token = secrets.token_urlsafe(32)
+        atomic_json(session.fd, "authority.json", {"token": token})
+        failed = False
+        try:
+            for monitor in targets:
+                if control():
+                    break
+                focus_monitor(monitor["name"])
+                args = [sys.executable, str(PLUGIN / "scripts/dinosaurs.py"),
+                        "--session-dir", str(session.path), "--output", monitor["name"]]
+                if preview:
+                    args.append("--preview")
+                if test_event is not None:
+                    args.extend(("--test-event", test_event))
+                child = None
+                try:
+                    child = subprocess.Popen(terminal_command(args, preview, monitor["name"]),
+                                             start_new_session=True, stdin=subprocess.DEVNULL)
+                    children.append(child)
+                    place_window(child, monitor, preview, control, fullscreen)
+                except (OSError, ValueError, subprocess.SubprocessError) as error:
+                    if child is not None:
+                        finish_group(child)
+                        children.remove(child)
+                    failed = True
+                    print("Omarchasaurus: " + diagnostic(error), file=sys.stderr, flush=True)
+        finally:
+            if not stop_requested:
+                focus_monitor(focused["name"])
+        print(f"Omarchasaurus {mode}: {len(children)} owned terminal(s) · idle OFF", flush=True)
+        while children and not control():
+            try:
+                message = read_json(session.fd, "dismissed.json", limit=4096, private=True)
+                if (isinstance(message, dict) and isinstance(message.get("token"), str)
+                        and secrets.compare_digest(message["token"], token)):
+                    break
+            except (OSError, ValueError, TypeError):
+                pass
+            for child in children[:]:
+                if exited(child):
+                    code = finish_group(child)
+                    children.remove(child)
+                    failed = failed or code != 0
+                    print(f"Owned terminal exited ({code}); other outputs remain active", flush=True)
+            time.sleep(0.1)
+        return 1 if failed else 0
+    finally:
+        if server is not None:
+            server.stop_accepting()
+        try:
+            finish_groups(children)
+            if focused_name is not None:
+                try:
+                    focus_monitor(focused_name)
+                except (OSError, ValueError, subprocess.SubprocessError):
+                    pass
+            if endpoint_identity is not None:
+                try:
+                    remove_socket(root.fd, endpoint, endpoint_identity)
+                except (OSError, ValueError) as error:
+                    print("Omarchasaurus: " + diagnostic(error), file=sys.stderr, flush=True)
+            if session is not None:
+                try:
+                    remove_session(root.fd, session.path.name, session)
+                except (OSError, ValueError) as error:
+                    print("Omarchasaurus: " + diagnostic(error), file=sys.stderr, flush=True)
+                finally:
+                    session.close()
+        finally:
+            if server is not None:
+                server.close()
+            for signum, handler in old_handlers.items():
+                signal.signal(signum, handler)
+
+
+def control_session(mode, command):
+    with runtime_directory() as root:
+        endpoint = mode + ".sock"
+        deadline = time.monotonic() + 10
+        while True:
+            try:
+                info = os.stat(endpoint, dir_fd=root.fd, follow_symlinks=False)
+                if not stat.S_ISSOCK(info.st_mode) or info.st_uid != UID or info.st_mode & 0o077:
+                    raise ValueError("Refusing unsafe session control socket")
+                with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
+                    reply_deadline = time.monotonic() + 30
+                    connection.settimeout(30)
+                    connection.connect(root.proc_path + "/" + endpoint)
+                    _, uid, _ = struct.unpack("3i", connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12))
+                    if uid != UID:
+                        raise ValueError("Foreign session coordinator")
+                    connection.sendall(command.encode("ascii"))
+                    reply = bytearray()
+                    while b"\n" not in reply:
+                        remaining = reply_deadline - time.monotonic()
+                        if remaining <= 0:
+                            raise ValueError("Session acknowledgement exceeded its deadline")
+                        connection.settimeout(remaining)
+                        data = connection.recv(min(256, 1025 - len(reply)))
+                        if not data or len(reply) + len(data) > 1024:
+                            raise ValueError("Invalid session acknowledgement")
+                        reply.extend(data)
+                    return reply.decode("utf-8").strip()
+            except (FileNotFoundError, ConnectionRefusedError):
+                # A Stop racing startup waits for the lock holder, never a PID.
+                lock = open_file(root.fd, mode + ".lock", os.O_RDWR, private=True, create=True)
+                try:
+                    try:
+                        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                        return "No running Omarchasaurus " + mode + " session"
+                    except BlockingIOError:
+                        if command == "status":
+                            return "Omarchasaurus " + mode + " session starting or stopping"
+                finally:
+                    os.close(lock)
+                if time.monotonic() >= deadline:
+                    raise ValueError("Owned session control socket did not become ready")
+                time.sleep(0.05)
+
+
+def read_settings():
+    from configuration import config_path, load_document
+    print(json.dumps(load_document(config_path()), separators=(",", ":"), allow_nan=False), flush=True)
+
+
+def resolve_settings(text):
+    """Resolve staged control-room choices without reading or writing settings."""
+    from configuration import parse_document, settings
+    print(json.dumps(settings(parse_document(text)), separators=(",", ":"), allow_nan=False), flush=True)
+
+
+def randomize_settings(text):
+    from configuration import parse_document
+    from randomize import randomize_document
+    value = randomize_document(parse_document(text), secrets.randbits(53))
+    # Keep the helper's real output on the same sparse schema boundary.
+    value = parse_document(json.dumps(value, separators=(",", ":"), allow_nan=False))
+    print(json.dumps(value, separators=(",", ":"), allow_nan=False), flush=True)
+
+
+def save_settings(text, expected):
+    # Persist sparse caller intent, never resolved defaults. These lazy imports
+    # keep Stop usable even when renderer/schema loading is unavailable.
+    from configuration import config_path, parse_document, settings
+    value = parse_document(text)
+    previous = parse_document(expected) if expected is not None else None
+    target = config_path()
+    with Directory.open(target.parent, private=True, create=True) as directory:
+        with writer_lock(directory.fd, "settings.lock"):
+            current = read_json(directory.fd, target.name, blank=True, missing=True)
+            if not isinstance(current, dict):
+                raise ValueError("Settings must be a JSON object")
+            settings(current)
+            if previous is not None and current != previous:
+                raise ValueError("Settings changed on disk; reload before applying")
+            # Serializes cooperating writers. A noncooperating external editor
+            # can still race this best-effort comparison and atomic replacement.
+            atomic_json(directory.fd, target.name, value)
+    print("Sparse settings saved atomically; running scenes reload valid changes", flush=True)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("command", choices=("start", "preview", "configure", "stop", "status", "save-settings", "resolve-settings", "read-settings", "randomize-settings"))
+    parser.add_argument("settings", nargs="?")
+    parser.add_argument("--expected", help="Previously loaded sparse JSON; best-effort external-edit conflict check")
+    parser.add_argument("--mode", choices=("start", "preview", "all"), default="all")
+    parser.add_argument("--fullscreen", action="store_true", help="Open interactive preview fullscreen on the focused output")
+    parser.add_argument("--test-event", choices=EVENTS,
+                        help="Temporarily test one unique event in a fresh preview; Surface any existing preview first")
+    args = parser.parse_args()
+    if args.fullscreen and args.command != "preview":
+        parser.error("--fullscreen is only valid with preview")
+    if args.test_event is not None and args.command != "preview":
+        parser.error("--test-event is only valid with preview")
+    if args.settings is not None and args.command not in ("save-settings", "resolve-settings", "randomize-settings"):
+        parser.error(args.command + " takes no JSON argument")
+    try:
+        if args.command == "configure":
+            installed = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "omarchy/plugins/dailen.omarchasaurus"
+            if installed.is_dir():
+                plugins = object_list(run_bounded(["omarchy-shell", "shell", "listPlugins"]),
+                                      "Omarchy plugin registry", 256)
+                if any(isinstance(plugin, dict) and plugin.get("id") == "dailen.omarchasaurus"
+                       and plugin.get("enabled") is True for plugin in plugins):
+                    # The installed shell owns the tray; do not launch a second app.
+                    os.execvp("omarchy-shell", ["omarchy-shell", "omarchasaurus", "configure"])
+            if not shutil.which("quickshell"):
+                raise ValueError("The settings editor requires Quickshell")
+            config = str(PLUGIN / "Settings.qml")
+            # IPC uses the same failure status for no instance and real errors.
+            # Quickshell 0.3.2 prints this absence message even with --json.
+            listing = run_bounded(["quickshell", "list", "--json", "--path", config]).strip()
+            absent = f'No running instances for "{config}"\nUse --all to list all instances.'
+            instances = [] if listing == absent or not listing else object_list(listing, "Quickshell instance", 256)
+            if instances:
+                os.execvp("quickshell", ["quickshell", "ipc", "--path", config,
+                                         "call", "omarchasaurus-control", "open"])
+            os.execvp("quickshell", ["quickshell", "--no-duplicate", "--path", config])
+        if args.command in ("start", "preview"):
+            return coordinate(args.command, args.fullscreen, args.test_event)
+        if args.command in ("save-settings", "resolve-settings", "randomize-settings"):
+            if args.settings is None:
+                parser.error(args.command + " requires a JSON object")
+            if args.command == "save-settings":
+                save_settings(args.settings, args.expected)
+            elif args.command == "resolve-settings":
+                resolve_settings(args.settings)
+            else:
+                randomize_settings(args.settings)
+        elif args.command == "read-settings":
+            read_settings()
+        else:
+            modes = ("start", "preview") if args.mode == "all" else (args.mode,)
+            print(" · ".join(control_session(mode, "stop" if args.command == "stop" else "status")
+                             for mode in modes), flush=True)
+        return 0
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
+        print("Omarchasaurus: " + diagnostic(error), file=sys.stderr, flush=True)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

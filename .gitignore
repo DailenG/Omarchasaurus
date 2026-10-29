@@ -1,0 +1,16 @@
+/target/
+/.worktrees/
+*.tmp
+__pycache__/
+*.pyc
+/.desloppify/
+/.agents/
+/.claude/
+/.codex/
+/.gemini/
+/.herdr/
+/.mypy_cache/
+/.ruff_cache/
+/.pytest_cache/
+/HANDOFF.md
+/docs/evidence/
