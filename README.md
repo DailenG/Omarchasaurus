@@ -29,7 +29,31 @@ omarchy-shell omarchasaurus configure
 
 Choose **Enter Immersion** for an interactive preview on the focused output. **Start All Outputs** opens one owned screensaver-style terminal per active output. **Surface** stops owned sessions only; it does not kill unrelated terminals or other screensavers.
 
-For an existing installation whose native controls are cached, close owned previews before refreshing the Omarchy shell. A shell refresh interrupts the desktop shell; it is not performed automatically by this plugin.
+## Updating — 0.2.0
+
+Apply or discard staged choices and Surface owned previews before updating. Quit any separately launched standalone control room, then use the normal updater:
+
+```sh
+omarchy plugin update dailen.omarchasaurus
+```
+
+From 0.2.0 onward, updates replace the tray service and settings components without restarting the whole desktop shell. Each QML release uses distinct paths for its complete UI payload, avoiding Quickshell's compiled-component cache. The plugin does not fetch updates itself.
+
+**One-time migration from 0.1.0:** that version retained its service across rescans. After updating, disable only Omarchasaurus, wait for its tray icon to disappear, then enable it again:
+
+```sh
+omarchy plugin disable dailen.omarchasaurus
+omarchy plugin enable dailen.omarchasaurus
+omarchy-shell omarchasaurus runtimeVersion
+```
+
+The final command reports `0.2.0`. This does not require restarting unrelated plugins or the desktop shell. An already-up-to-date checkout does not trigger an updater rescan, so it still needs that one-time migration.
+
+Closing/reopening the control room preserves staged choices and in-flight Apply/Randomize work while its service stays loaded. A release reload discards unsaved staged choices and may atomically cancel finite helpers. Standalone instances keep their loaded release until quit.
+
+### 0.2.0 scenery changes
+
+The complete Brachiosaurus/tree group moves eight world units right; its anatomy, browsing relationship and hatchling destination move together. Nearby plants leave the nest's eggs and rim clear, and the nest sits slightly higher to avoid bottom-row clipping. Narrow framing fits the stationary nest and browsing group together without relocating them as the terminal changes size. Passing animals can still temporarily cross in front of the nest.
 
 ## Settings
 
@@ -111,7 +135,7 @@ python3 ~/.config/omarchy/plugins/dailen.omarchasaurus/scripts/launch-dinosaurs 
 omarchy plugin remove dailen.omarchasaurus
 ```
 
-Shell unload signals its retained coordinators; those coordinators stop and reap owned terminals using already-loaded cleanup code. Standalone Quit waits for local event tests, saves and helper processes before exiting.
+Shell unload signals supervised session coordinators; they stop and reap owned terminals even when Quickshell immediately kills its direct helper process. Standalone Quit waits for local event tests, saves and helper processes before exiting.
 
 Removal intentionally **keeps** `settings.json` and `settings.lock` under the configuration directory so reinstalling preserves choices. Stopped runtime lock files can remain until logout, and normal Quickshell logs follow the host's retention. No account credentials, keyring entries, installed packages, units, hooks, firewall rules or shared Hyprland configuration need removal because this plugin creates none. Omarchy manages the plugin registration itself. Remove retained settings manually only if you want to discard them; do not delete a shared configuration directory.
 
@@ -122,6 +146,8 @@ python3 -m unittest discover -s tests -q
 ```
 
 The suite covers animation/admission transitions, palette independence, bounded randomization, adversarial file/process/socket boundaries and private terminal cleanup. Ruff, mypy-checked scene/security boundaries and `omarchy-plugin-validate` are additional development checks. Private desktop transports and unmapped native rendering do not establish physical multi-output/hot-plug, fullscreen aesthetic or long-running resource/soak acceptance.
+
+Every QML code release must increment `manifest.version`, move the **entire** QML payload to `qml/<version>/`, update its entrypoints and `Service.runtimeVersion`, and remove the previous payload. Do not reuse unchanged QML URLs or retain old root wrappers: the host disables Quickshell's own reload and may retain compiled transitive components. Standalone configure resolves and validates the release through the manifest.
 
 The public repository excludes historical desktop captures, development-agent instruction trees and private review corpora. The preview above is an actual production character-grid snapshot rendered to PNG without a desktop capture; no font files are bundled.
 

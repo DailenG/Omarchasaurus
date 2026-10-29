@@ -12,11 +12,12 @@ class Canvas:
         self.width = max(1, min(500, width))
         self.height = max(1, min(200, height))
         self.aspect = max(1.2, min(3.0, cell_aspect))
-        self.scale = min(self.height / 60, self.width / (self.aspect * 62))
+        # Fit the nest and the browsing group together even in a narrow terminal.
+        self.scale = min(self.height / 60, self.width / (self.aspect * 78))
         self.visible_width = self.width / (self.aspect * self.scale)
-        # Blend focal framing instead of jumping 18 world units at one column.
+        # Blend focal framing rather than relocating scenery as columns change.
         landscape = max(0, min(1, (self.visible_width - 100) / 10))
-        self.center = 73 - 18*landscape
+        self.center = 75 - 18*landscape
         self.origin_y = 60 - self.height / self.scale
         self.camera = camera
         self.depth = 0

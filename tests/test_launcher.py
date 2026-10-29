@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import signal
+import shutil
 import subprocess
 import socket
 import sys
@@ -60,6 +61,151 @@ else:
 '''
 
 
+class LauncherReleaseLayout(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory(prefix='omarchasaurus-release-test-')
+        self.root = Path(self.temporary.name)
+        self.plugin = self.root / 'plugin'
+        scripts = self.plugin / 'scripts'
+        scripts.mkdir(parents=True, mode=0o700)
+        for name in ('launch-dinosaurs', 'event_preview.py', 'bounded_process.py',
+                     'safe_io.py', 'session_control.py'):
+            shutil.copyfile(ROOT / 'scripts' / name, scripts / name)
+        self.launcher = scripts / 'launch-dinosaurs'
+        self.bin = self.root / 'bin'
+        self.bin.mkdir(mode=0o700)
+        quickshell = self.bin / 'quickshell'
+        quickshell.write_text(
+            '#!' + sys.executable + '\nimport json, os, sys\n'
+            'if sys.argv[1] == "list": print(os.environ.get("FIXTURE_INSTANCES", "[]"))\n'
+            'else: print(json.dumps(sys.argv[1:]))\n')
+        quickshell.chmod(0o700)
+        runtime = self.root / 'runtime'
+        runtime.mkdir(mode=0o700)
+        self.environment = os.environ | {
+            'PATH': str(self.bin), 'XDG_CONFIG_HOME': str(self.root / 'config'),
+            'XDG_RUNTIME_DIR': str(runtime),
+        }
+        self.manifest = {
+            'schemaVersion': 1, 'id': 'dailen.omarchasaurus', 'version': '0.2.0',
+            'kinds': ['service', 'overlay'], 'keepLoaded': False,
+            'entryPoints': {'service': 'qml/0.2.0/Service.qml', 'overlay': 'qml/0.2.0/Config.qml'},
+        }
+        self.release('0.2.0')
+        self.write_manifest()
+
+    def tearDown(self):
+        self.temporary.cleanup()
+
+    def release(self, version):
+        directory = self.plugin / 'qml' / version
+        directory.mkdir(parents=True, mode=0o700)
+        for name in ('Service.qml', 'Config.qml', 'Settings.qml'):
+            (directory / name).write_text('import QtQuick\nItem {}\n')
+        return directory
+
+    def write_manifest(self):
+        (self.plugin / 'manifest.json').write_text(json.dumps(self.manifest))
+
+    def command(self, command='configure', **environment):
+        return subprocess.run(
+            [sys.executable, str(self.launcher), command],
+            env=self.environment | environment, capture_output=True, text=True, timeout=6)
+
+    def test_standalone_discovers_current_release_without_creating_user_state(self):
+        result = self.command()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout),
+                         ['--no-duplicate', '--path', str(self.plugin / 'qml/0.2.0/Settings.qml')])
+        self.assertFalse((self.root / 'config').exists())
+        self.assertEqual(list((self.root / 'runtime').iterdir()), [])
+
+    def test_new_manifest_selects_new_standalone_identity_and_existing_instance_ipc(self):
+        self.release('0.3.0')
+        self.manifest['version'] = '0.3.0'
+        self.manifest['entryPoints'] = {
+            'service': 'qml/0.3.0/Service.qml', 'overlay': 'qml/0.3.0/Config.qml'}
+        self.write_manifest()
+        result = self.command(FIXTURE_INSTANCES='[{}]')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout), [
+            'ipc', '--path', str(self.plugin / 'qml/0.3.0/Settings.qml'),
+            'call', 'omarchasaurus-control', 'open'])
+
+    def test_manifest_rejects_wrong_identity_schema_and_unversioned_or_traversing_paths(self):
+        changes = (
+            {'id': 'other.plugin'}, {'schemaVersion': True}, {'version': '../0.2.0'},
+            {'version': '00.2.0'}, {'version': '0.3.0'}, {'keepLoaded': True},
+            {'kinds': ['overlay']}, {'entryPoints': {'service': 'Service.qml', 'overlay': 'Config.qml'}},
+            {'entryPoints': {'service': '/tmp/Service.qml', 'overlay': '../Config.qml'}},
+        )
+        original = self.manifest.copy()
+        for change in changes:
+            with self.subTest(change=change):
+                self.manifest = original | change
+                self.write_manifest()
+                result = self.command()
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(result.stdout, '')
+        self.assertFalse((self.root / 'config').exists())
+
+    def test_unsafe_manifest_files_fail_without_blocking_or_launching(self):
+        manifest = self.plugin / 'manifest.json'
+        saved = self.root / 'saved-manifest'
+        manifest.rename(saved)
+        for kind in ('symlink', 'hardlink', 'fifo', 'writable', 'oversized'):
+            with self.subTest(kind=kind):
+                if kind == 'symlink':
+                    manifest.symlink_to(saved)
+                elif kind == 'hardlink':
+                    os.link(saved, manifest)
+                elif kind == 'fifo':
+                    os.mkfifo(manifest, 0o600)
+                elif kind == 'writable':
+                    manifest.write_text(saved.read_text())
+                    manifest.chmod(0o666)
+                else:
+                    manifest.write_text(' ' * 16385)
+                result = self.command()
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(result.stdout, '')
+                manifest.unlink()
+
+    def test_release_symlink_and_unsafe_settings_file_are_rejected(self):
+        release = self.plugin / 'qml/0.2.0'
+        saved = self.root / 'saved-release'
+        release.rename(saved)
+        release.symlink_to(saved, target_is_directory=True)
+        self.assertNotEqual(self.command().returncode, 0)
+        release.unlink()
+        saved.rename(release)
+        settings = release / 'Settings.qml'
+        settings.unlink()
+        settings.symlink_to(release / 'Config.qml')
+        self.assertNotEqual(self.command().returncode, 0)
+        settings.unlink()
+        settings.write_text('import QtQuick\nItem {}\n')
+        settings.chmod(0o666)
+        self.assertNotEqual(self.command().returncode, 0)
+
+    def test_missing_release_never_falls_back_to_obsolete_root_settings(self):
+        (self.plugin / 'qml/0.2.0/Settings.qml').unlink()
+        (self.plugin / 'Settings.qml').write_text('import QtQuick\nItem {}\n')
+        result = self.command()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, '')
+
+    def test_stop_and_status_remain_available_without_manifest_or_qml(self):
+        (self.plugin / 'manifest.json').unlink()
+        shutil.rmtree(self.plugin / 'qml')
+        for command in ('stop', 'status'):
+            with self.subTest(command=command):
+                result = self.command(command)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn('No running Omarchasaurus', result.stdout)
+        self.assertFalse((self.root / 'config').exists())
+
+
 class LauncherSessions(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory(prefix='omarchasaurus-session-test-')
@@ -98,9 +244,10 @@ class LauncherSessions(unittest.TestCase):
             time.sleep(.02)
         self.fail('coordinator lifecycle transition timed out')
 
-    def start(self, count=2):
+    def start(self, count=2, supervised=False):
+        options = ['--supervised'] if supervised else []
         self.coordinator = subprocess.Popen(
-            [sys.executable, str(LAUNCHER), 'start'], env=self.environment,
+            [sys.executable, str(LAUNCHER), 'start', *options], env=self.environment,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
         self.wait_for(lambda: len(self.records()) == count)
         self.wait_for(lambda: self.command('status', '--mode', 'start').returncode == 0)
@@ -152,6 +299,41 @@ class LauncherSessions(unittest.TestCase):
         self.assertTrue(all(Path(f'/proc/{pid}').exists() for pid in pids.values()))
         self.stop()
         self.assert_released(pids.values())
+
+    def test_supervised_stop_waits_for_coordinator_to_reap_every_owned_terminal(self):
+        pids = self.start(supervised=True)
+        self.stop()
+        self.assert_released(pids.values())
+
+    def test_supervised_ui_sigkill_and_closed_pipes_still_reap_owned_terminals(self):
+        pids = self.start(supervised=True)
+        guardian = self.coordinator.pid
+        children = Path(f'/proc/{guardian}/task/{guardian}/children').read_text().split()
+        self.assertEqual(len(children), 1)
+        cleanup_pid = int(children[0])
+        self.coordinator.kill()
+        self.coordinator.wait(timeout=6)
+        self.coordinator.stdout.close()
+        self.coordinator.stderr.close()
+        deadline = time.monotonic() + 6
+        while True:
+            status = Path(f'/proc/{cleanup_pid}/stat')
+            if not status.exists():
+                break
+            try:
+                if status.read_text().split(') ', 1)[1][0] == 'Z':
+                    break
+            except FileNotFoundError:
+                break
+            self.assertLess(time.monotonic(), deadline, 'cleanup coordinator did not finish after UI death')
+            time.sleep(.02)
+        self.assert_released(pids.values())
+
+    def test_supervised_flag_is_rejected_outside_owned_session_commands(self):
+        result = self.command('stop', '--supervised')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('--supervised is only valid with start or preview', result.stderr)
+        self.assertFalse(self.session_root.exists())
 
     def test_event_requires_preview_without_starting_a_session(self):
         for mode in ('start', 'configure', 'stop', 'status', 'save-settings', 'resolve-settings'):

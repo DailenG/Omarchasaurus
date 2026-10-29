@@ -86,8 +86,8 @@ Item {
         onTriggered: if (child.running) child.signal(9)
     }
     Component.onDestruction: {
-        // Coordinators own and reap only their children on TERM. During normal
-        // shutdown their owner keeps this component alive until onExited.
+        // Session guardians forward TERM and protect coordinator cleanup from
+        // Process's immediate destructor KILL. Normal Quit waits for onExited.
         if (child.running) child.signal(15)
     }
 }

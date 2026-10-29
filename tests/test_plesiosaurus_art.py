@@ -115,8 +115,8 @@ class PlesiosaurusArtwork(unittest.TestCase):
             plane = math.floor(canvas.project(0, pose['water_y'])[1])
             # Real underwater scenery is deliberately present before drawing.
             canvas.line(20, 45, 50, 45, (11, 22, 33), glyph='~', owner='water')
-            canvas.char(30, 25, '*', (44, 55, 66), owner='sky')
-            sx, sy = map(round, canvas.project(30, 25))
+            sx, sy = canvas.width // 2, round(canvas.project(canvas.center, 25)[1])
+            canvas.put(sx, sy, '*', (44, 55, 66), owner='sky')
             before = [(list(canvas.chars[y]), list(canvas.colors[y]),
                        list(canvas.owners[y])) for y in range(plane+1, canvas.height)]
             _plesiosaurus(canvas, pose, 1, _PALETTES['morning'])

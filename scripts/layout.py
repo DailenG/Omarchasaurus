@@ -10,6 +10,11 @@ WEATHER_DEPTH = .04
 WATER_DEPTH = .24
 HORIZON_Y = 35
 
+# The browsing adult and its tree share one authored horizontal translation.
+FOCAL_OFFSET_X = 8.0
+FOCAL_BOUNDS = (44 + FOCAL_OFFSET_X, 7, 102 + FOCAL_OFFSET_X, 55)
+YOUNG_PARENT_TARGET = (69 + FOCAL_OFFSET_X, 48.6)
+
 
 @dataclass(frozen=True, slots=True)
 class Cloud:
@@ -305,11 +310,14 @@ def generate_layout(seed: int, scenery) -> ValleyLayout:
     )
 
     rng = _rng(seed, "ferns")
+    # Candidate positions reserve the complete nest (including raster margins)
+    # and the relocated adult's feet before density activation. Keeping the
+    # pools intact preserves candidate IDs, counts and density-independent poses.
     ferns = tuple(
         Fern(f"fern:{index}", x + rng.uniform(-1, 1),
              rng.uniform(57.8, 58.8), rng.uniform(3, 5),
              rng.uniform(0, math.tau))
-        for index, x in enumerate((-2, 6, 15, 24, 35, 89, 108, 119))
+        for index, x in enumerate((-2, 6, 15, 24, 31, 97, 108, 119))
     )
 
     rng = _rng(seed, "rocks")
@@ -327,7 +335,7 @@ def generate_layout(seed: int, scenery) -> ValleyLayout:
         Cycad(f"cycad:{index}", x + rng.uniform(-1, 1),
               rng.uniform(55.4, 56.4), rng.uniform(3.2, 4.4),
               rng.uniform(0, math.tau))
-        for index, x in enumerate((3, 19, 31, 43, 86, 114))
+        for index, x in enumerate((3, 19, 31, 54, 96, 114))
     )
 
     rng = _rng(seed, "flowers")
@@ -336,7 +344,7 @@ def generate_layout(seed: int, scenery) -> ValleyLayout:
                rng.uniform(56.6, 58.2), rng.uniform(1.4, 2.2),
                rng.uniform(0, math.tau),
                "warm" if index % 2 == 0 else "cool")
-        for index, x in enumerate((-4, 4, 11, 21, 29, 39, 46, 85, 92, 100, 111, 121))
+        for index, x in enumerate((-4, 4, 11, 21, 29, 36, 51, 85, 92, 100, 111, 121))
     )
 
     rng = _rng(seed, "lily_pads")
@@ -351,7 +359,7 @@ def generate_layout(seed: int, scenery) -> ValleyLayout:
     nest_candidate = Nest(
         "nest:0",
         43.5 + rng.uniform(-.8, .8),
-        56.6 + rng.uniform(-.3, .3),
+        56.0 + rng.uniform(-.3, .3),
         rng.uniform(2.6, 3.1),
         rng.choice((3, 4)),
     )
@@ -419,5 +427,5 @@ def generate_layout(seed: int, scenery) -> ValleyLayout:
         trex_start=_rng(seed, "trex:start").uniform(-2, 2),
         water_bounds=(-8, 37, 119, 48),
         walking_bounds=(-200, 48, 400, 55),
-        focal_bounds=(44, 7, 102, 55),
+        focal_bounds=FOCAL_BOUNDS,
     )

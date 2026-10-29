@@ -21,7 +21,7 @@ from engine import World
 from configuration import load_settings, settings
 from dinosaurs import Input, session_alive
 from character_art import _brachiosaurus_pose, _trex_pose, draw_scene
-from layout import METEOR_DEPTH, WATER_DEPTH
+from layout import FOCAL_OFFSET_X, METEOR_DEPTH, WATER_DEPTH
 
 
 class TerminalBehavior(unittest.TestCase):
@@ -268,7 +268,9 @@ class PreviewInteractions(unittest.TestCase):
         rest_trex_canvas = Canvas(240, 72, resting['camera'])
         draw_scene(rest_trex_canvas, resting, world.config)
         tx = resting['trex_x']
-        base_b_torso = column_counts(rest_brachio_canvas, 'brachiosaurus', 58, 74)
+        torso_left = base_brachio['body'](58, 44)[0]
+        torso_right = base_brachio['body'](74, 44)[0]
+        base_b_torso = column_counts(rest_brachio_canvas, 'brachiosaurus', torso_left, torso_right)
         base_t_torso = column_counts(rest_trex_canvas, 'trex', tx - 3.5, tx + 3.0)
 
         for reaction in (.5, 1.0):
@@ -288,7 +290,7 @@ class PreviewInteractions(unittest.TestCase):
             draw_scene(b_canvas, dict(active, trex_x=-100), world.config)
             t_canvas = Canvas(240, 72, active['camera'])
             draw_scene(t_canvas, active, world.config)
-            self.assertEqual(column_counts(b_canvas, 'brachiosaurus', 58, 74), base_b_torso)
+            self.assertEqual(column_counts(b_canvas, 'brachiosaurus', torso_left, torso_right), base_b_torso)
             self.assertEqual(column_counts(t_canvas, 'trex', tx - 3.5, tx + 3.0), base_t_torso)
 
     def test_meteor_is_single_bounded_and_frozen_by_pause(self):
@@ -326,8 +328,8 @@ class PreviewInteractions(unittest.TestCase):
     def test_sky_click_targets_exclude_mountain_water_tree_and_dinosaur(self):
         canvas = self.scene(World(settings()))
         for point, expected in (((5, 4), 'sky'), ((21, 25), None),
-                                ((20, 42), 'water'), ((94, 22), None),
-                                ((69, 44), 'brachiosaurus')):
+                                ((20, 42), 'water'), ((94+FOCAL_OFFSET_X, 22), None),
+                                ((69+FOCAL_OFFSET_X, 44), 'brachiosaurus')):
             x, y = map(round, canvas.project(*point))
             self.assertEqual(canvas.owners[y][x], expected, point)
 
@@ -394,7 +396,7 @@ class PreviewInteractions(unittest.TestCase):
         canvas.depth = WATER_DEPTH
         for point, expected in (((20, 42), 'water'), ((-12, 42), None),
                                 ((123, 42), None), ((20, 50), None),
-                                ((69, 44), 'brachiosaurus')):
+                                ((69+FOCAL_OFFSET_X, 44), 'brachiosaurus')):
             x, y = map(round, canvas.project(*point))
             self.assertEqual(canvas.owners[y][x], expected, point)
 
@@ -411,7 +413,8 @@ class PreviewInteractions(unittest.TestCase):
                       (baseline.chars[y][x], baseline.colors[y][x])]
         self.assertTrue(any(active.unproject(x, y, WATER_DEPTH)[1] < 40
                             for x, y in changed))
-        hidden = dict(pose['water_jump'], x=69, y=43, origin=(69, 44))
+        hidden = dict(pose['water_jump'], x=69+FOCAL_OFFSET_X, y=43,
+                      origin=(69+FOCAL_OFFSET_X, 44))
         occluded = self.scene(world, dict(pose, water_jump=hidden))
         for y, row in enumerate(baseline.owners):
             for x, owner in enumerate(row):

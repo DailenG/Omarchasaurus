@@ -145,6 +145,68 @@ def place_window(child, monitor, preview, stopping, fullscreen=False):
         raise ValueError("Timed out waiting for owned terminal on " + monitor["name"])
 
 
+def supervise_session(mode, fullscreen=False, test_event=None):
+    """Let a coordinator reap its terminals even if QML kills its direct child."""
+    import ctypes
+
+    child_pid = None
+    stopping = False
+    parent_pid = os.getpid()
+    old_handlers = {}
+
+    def forward(signum, frame):
+        nonlocal stopping
+        stopping = True
+        if child_pid:
+            try:
+                os.kill(child_pid, signum)
+            except ProcessLookupError:
+                pass
+
+    def early_stop(signum, frame):
+        # No terminals exist until run_session replaces this handler. Its
+        # existing finally blocks still release any partially opened resources.
+        raise SystemExit(0)
+
+    for signum in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+        old_handlers[signum] = signal.signal(signum, forward)
+    try:
+        child_pid = os.fork()
+        if child_pid == 0:
+            child_pid = None
+            for signum in old_handlers:
+                signal.signal(signum, early_stop)
+            libc = ctypes.CDLL(None, use_errno=True)
+            prctl = libc.prctl
+            prctl.argtypes = [ctypes.c_int, ctypes.c_ulong, ctypes.c_ulong,
+                             ctypes.c_ulong, ctypes.c_ulong]
+            prctl.restype = ctypes.c_int
+            # Linux PR_SET_PDEATHSIG. Quickshell destroys Process with SIGKILL;
+            # only the guardian dies immediately, not the cleanup coordinator.
+            if prctl(1, signal.SIGTERM, 0, 0, 0) != 0:
+                raise OSError(ctypes.get_errno(), "Cannot protect session cleanup")
+            if stopping or os.getppid() != parent_pid:
+                return 0
+            return coordinate(mode, fullscreen, test_event)
+        if stopping:
+            forward(signal.SIGTERM, None)
+        _, status = os.waitpid(child_pid, 0)
+        code = os.waitstatus_to_exitcode(status)
+        return code if code >= 0 else 128 - code
+    finally:
+        for signum, handler in old_handlers.items():
+            signal.signal(signum, handler)
+
+
+
+def session_message(text, error=False):
+    # An unloaded QML Process closes its pipes before the surviving coordinator
+    # finishes. Losing that observer must not interrupt owned-resource cleanup.
+    try:
+        print(text, file=sys.stderr if error else sys.stdout, flush=True)
+    except BrokenPipeError:
+        pass
+
 def coordinate(mode, fullscreen=False, test_event=None):
     with runtime_directory() as root:
         lock = open_file(root.fd, mode + ".lock", os.O_RDWR, private=True, create=True)
@@ -236,11 +298,11 @@ def run_session(root, mode, fullscreen, test_event):
                         finish_group(child)
                         children.remove(child)
                     failed = True
-                    print("Omarchasaurus: " + diagnostic(error), file=sys.stderr, flush=True)
+                    session_message("Omarchasaurus: " + diagnostic(error), error=True)
         finally:
             if not stop_requested:
                 focus_monitor(focused["name"])
-        print(f"Omarchasaurus {mode}: {len(children)} owned terminal(s) · idle OFF", flush=True)
+        session_message(f"Omarchasaurus {mode}: {len(children)} owned terminal(s) · idle OFF")
         while children and not control():
             try:
                 message = read_json(session.fd, "dismissed.json", limit=4096, private=True)
@@ -254,7 +316,7 @@ def run_session(root, mode, fullscreen, test_event):
                     code = finish_group(child)
                     children.remove(child)
                     failed = failed or code != 0
-                    print(f"Owned terminal exited ({code}); other outputs remain active", flush=True)
+                    session_message(f"Owned terminal exited ({code}); other outputs remain active")
             time.sleep(0.1)
         return 1 if failed else 0
     finally:
@@ -271,12 +333,12 @@ def run_session(root, mode, fullscreen, test_event):
                 try:
                     remove_socket(root.fd, endpoint, endpoint_identity)
                 except (OSError, ValueError) as error:
-                    print("Omarchasaurus: " + diagnostic(error), file=sys.stderr, flush=True)
+                    session_message("Omarchasaurus: " + diagnostic(error), error=True)
             if session is not None:
                 try:
                     remove_session(root.fd, session.path.name, session)
                 except (OSError, ValueError) as error:
-                    print("Omarchasaurus: " + diagnostic(error), file=sys.stderr, flush=True)
+                    session_message("Omarchasaurus: " + diagnostic(error), error=True)
                 finally:
                     session.close()
         finally:
@@ -372,6 +434,36 @@ def save_settings(text, expected):
     print("Sparse settings saved atomically; running scenes reload valid changes", flush=True)
 
 
+def settings_entrypoint():
+    """Resolve this release's standalone UI without following untrusted paths."""
+    with Directory.open(PLUGIN) as directory:
+        manifest = read_json(directory.fd, "manifest.json", limit=16384)
+    if not isinstance(manifest, dict):
+        raise ValueError("Plugin manifest must be an object")
+    version = manifest.get("version")
+    if (type(manifest.get("schemaVersion")) is not int or manifest["schemaVersion"] != 1
+            or manifest.get("id") != "dailen.omarchasaurus"
+            or not isinstance(version, str) or len(version) > 64
+            or not re.fullmatch(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)", version)):
+        raise ValueError("Invalid plugin release manifest")
+    kinds = manifest.get("kinds")
+    entries = manifest.get("entryPoints")
+    prefix = "qml/" + version + "/"
+    if (not isinstance(kinds, list) or len(kinds) != 2
+            or "service" not in kinds or "overlay" not in kinds
+            or manifest.get("keepLoaded", False) is not False
+            or not isinstance(entries, dict)
+            or entries.get("service") != prefix + "Service.qml"
+            or entries.get("overlay") != prefix + "Config.qml"):
+        raise ValueError("Invalid release-scoped QML entry points")
+    release = PLUGIN / "qml" / version
+    with Directory.open(release) as directory:
+        for name in ("Service.qml", "Config.qml", "Settings.qml"):
+            fd = open_file(directory.fd, name)
+            os.close(fd)
+    return release / "Settings.qml"
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("start", "preview", "configure", "stop", "status", "save-settings", "resolve-settings", "read-settings", "randomize-settings"))
@@ -379,6 +471,8 @@ def main():
     parser.add_argument("--expected", help="Previously loaded sparse JSON; best-effort external-edit conflict check")
     parser.add_argument("--mode", choices=("start", "preview", "all"), default="all")
     parser.add_argument("--fullscreen", action="store_true", help="Open interactive preview fullscreen on the focused output")
+    parser.add_argument("--supervised", action="store_true",
+                        help="Keep owned cleanup alive if the QML controller is unloaded")
     parser.add_argument("--test-event", choices=EVENTS,
                         help="Temporarily test one unique event in a fresh preview; Surface any existing preview first")
     args = parser.parse_args()
@@ -386,6 +480,8 @@ def main():
         parser.error("--fullscreen is only valid with preview")
     if args.test_event is not None and args.command != "preview":
         parser.error("--test-event is only valid with preview")
+    if args.supervised and args.command not in ("start", "preview"):
+        parser.error("--supervised is only valid with start or preview")
     if args.settings is not None and args.command not in ("save-settings", "resolve-settings", "randomize-settings"):
         parser.error(args.command + " takes no JSON argument")
     try:
@@ -400,7 +496,7 @@ def main():
                     os.execvp("omarchy-shell", ["omarchy-shell", "omarchasaurus", "configure"])
             if not shutil.which("quickshell"):
                 raise ValueError("The settings editor requires Quickshell")
-            config = str(PLUGIN / "Settings.qml")
+            config = str(settings_entrypoint())
             # IPC uses the same failure status for no instance and real errors.
             # Quickshell 0.3.2 prints this absence message even with --json.
             listing = run_bounded(["quickshell", "list", "--json", "--path", config]).strip()
@@ -411,7 +507,8 @@ def main():
                                          "call", "omarchasaurus-control", "open"])
             os.execvp("quickshell", ["quickshell", "--no-duplicate", "--path", config])
         if args.command in ("start", "preview"):
-            return coordinate(args.command, args.fullscreen, args.test_event)
+            run = supervise_session if args.supervised else coordinate
+            return run(args.command, args.fullscreen, args.test_event)
         if args.command in ("save-settings", "resolve-settings", "randomize-settings"):
             if args.settings is None:
                 parser.error(args.command + " requires a JSON object")

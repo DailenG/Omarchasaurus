@@ -197,7 +197,10 @@ class ParasaurolophusArtwork(unittest.TestCase):
         _parasaurolophus(isolated, adult, 1, _PALETTES['morning'])
         focal_pixels = self.owned(baseline, 'brachiosaurus')
         self.assertTrue(focal_pixels & self.owned(isolated, adult['id']))
-        self.assert_owned_near(frame, _parasaurolophus_pose(adult, 1)['head'](13, -12), adult['id'])
+        remaining = self.owned(frame, adult['id'])
+        self.assertTrue(remaining)
+        self.assertTrue(remaining <= self.owned(isolated, adult['id']))
+        self.assertFalse(remaining & focal_pixels)
         self.assertEqual(self.owned(frame, 'brachiosaurus'), focal_pixels)
 
 

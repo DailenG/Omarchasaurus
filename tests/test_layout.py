@@ -135,8 +135,8 @@ class LayoutHabitats(unittest.TestCase):
                     # Covers the stem, fronds, leaflets and .22 animated sway.
                     self.assertGreaterEqual(fern.y - fern.height - .7, 50.5)
                     half_width = fern.height + .77
-                    self.assertTrue(fern.x + half_width < 52 or
-                                    fern.x - half_width > 82)
+                    self.assertTrue(fern.x + half_width < 60 or
+                                    fern.x - half_width > 90)
                 for rock in layout.rocks:
                     self.bounded(rock.x, -8, 125)
                     self.bounded(rock.y, 50.5, 60)
@@ -150,7 +150,7 @@ class LayoutHabitats(unittest.TestCase):
                         left, right = rock.x - 3.7*rock.scale, rock.x + 3.7*rock.scale
                         top = rock.y - 2.8*rock.scale
                     self.assertGreaterEqual(top, 50.5)
-                    self.assertTrue(right < 52 or left > 82)
+                    self.assertTrue(right < 60 or left > 90)
                 left, top, right, bottom = layout.water_bounds
                 for ripple in layout.ripples:
                     self.bounded(ripple.x, -4, 114)
@@ -168,8 +168,8 @@ class LayoutHabitats(unittest.TestCase):
                     self.assertLessEqual(pad.y + pad.radius * .35, bottom)
                 for cycad in layout.cycads:
                     self.assertGreaterEqual(cycad.y - cycad.height, 50.5)
-                    self.assertTrue(cycad.x + cycad.height + .18 < 52 or
-                                    cycad.x - cycad.height - .18 > 80)
+                    self.assertTrue(cycad.x + cycad.height + .18 < 60 or
+                                    cycad.x - cycad.height - .18 > 90)
                 for flower in layout.flowers:
                     self.assertGreaterEqual(flower.y - flower.height, 50.5)
                     self.bounded(flower.x - .74, -8, 125)

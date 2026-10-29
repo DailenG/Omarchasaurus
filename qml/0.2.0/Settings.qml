@@ -11,23 +11,21 @@ ShellRoot {
     }
     function hide(pluginId) { room.close() }
     function enterImmersion() {
-        if (!room.settingsValid || room.externalChange || room.saving || room.randomizing) {
+        if (!sessions.control.settingsValid || sessions.control.externalChange || sessions.control.saving || sessions.control.randomizing) {
             summon("", "{}")
             return
         }
-        room.beginSession("preview")
+        sessions.control.beginSession("preview")
     }
     function requestQuit() {
         quitting = true
-        room.pendingSession = ""
-        room.shutdown()
         room.close()
         sessions.shutdown()
         finishQuit()
     }
     function finishQuit() {
         // Keep the controller alive until saves finish and all helpers reap.
-        if (quitting && !room.saving && !room.localEventBusy && !room.finiteHelperBusy && !sessions.busy) Qt.quit()
+        if (quitting && !sessions.busy) Qt.quit()
     }
 
     Service {
@@ -40,10 +38,7 @@ ShellRoot {
     Config {
         id: room
         shell: root
-        controller: sessions
-        onSavingChanged: root.finishQuit()
-        onLocalEventBusyChanged: root.finishQuit()
-        onFiniteHelperBusyChanged: root.finishQuit()
+        service: sessions
     }
     IpcHandler {
         target: "omarchasaurus-control"

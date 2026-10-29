@@ -1,4 +1,5 @@
 import copy
+from dataclasses import replace
 import math
 from pathlib import Path
 import sys
@@ -8,13 +9,13 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from canvas import Canvas
-from character_art import (_PALETTES, _brachiosaurus, _egg,
-                           _nest, _triceratops, _young_brachiosaurus, _young_brachiosaurus_pose,
-                           draw_scene, visible_cast_members)
+from character_art import (_PALETTES, _brachiosaurus, _brachiosaurus_pose, _egg,
+                           _focal_tree, _foreground, _nest, _triceratops, _young_brachiosaurus,
+                           _young_brachiosaurus_pose, draw_scene, visible_cast_members)
 from configuration import settings
 from engine import World
-from hatching import YOUNG_EXTENTS, YOUNG_HEIGHT, egg_offsets
-from layout import Nest
+from hatching import NestHatching, SECOND, YOUNG_EXTENTS, YOUNG_HEIGHT, egg_offsets
+from layout import FOCAL_OFFSET_X, YOUNG_PARENT_TARGET, Nest, generate_layout
 
 
 class StrokeCanvas(Canvas):
@@ -268,6 +269,134 @@ class HatchingArtwork(unittest.TestCase):
         self.assertEqual(scene(pose, ('brachiosaurus',)), resting)
         self.assertEqual(scene(pose, reserved, maximum=1), resting)
 
+    def test_full_nest_rim_and_eggs_have_static_clearance_at_maximum_density(self):
+        # Compare every opaque nest cell, not just a bounding-box intersection
+        # or a few remaining egg-colored pixels. Include the early hatch pass
+        # and under-parent settlement, when only the rim is repainted after
+        # foreground decorations and the clutch resets independently.
+        grids = ((80, 40, 3, None), (80, 40, 3, 0),
+                 (120, 36, 2, 2), (240, 60, 1.2, 5),
+                 (80, 40, 3, 29), (120, 36, 2, 32))
+        maximum = {key: True if key == 'nestEnabled' else 2
+                   for key in self.config['scenery']}
+        for seed in (*range(12), 42, 2026, 2**53-1):
+            layout = generate_layout(seed, maximum)
+            event = NestHatching(layout.nest, layout.hatching_seed, layout.hatching_phase)
+            event.advance(event.deadline, event.deadline)
+            born = event.born
+            for index, (width, height, aspect, age) in enumerate(grids):
+                preset = ('morning', 'dusk')[(seed+index) % 2]
+                reduced = bool((seed//2+index) % 2)
+                motion = .18 if reduced else 1
+                camera = ((-4, -2), (0, 0), (4, 2))[index % 3]
+                if age is not None:
+                    event.advance(event.elapsed_ns+age*SECOND, born+age*SECOND)
+                young = None if age is None else event.current()
+                config = settings({
+                    'preset': preset, 'animals': self.config['animals'],
+                    'population': {'maxVisible': 2, 'maxFamilies': 0},
+                    'scenery': maximum, 'motion': {'reducedMotion': reduced}})
+                snapshot = dict(self.snapshot, layout=layout, time=17.3*index,
+                                brachiosaurus_reaction=(index % 3)/2, hatching=young,
+                                admitted=('brachiosaurus', 'brachiosaurus:young'))
+                palette = {name: tuple(min(255, round(v*1.45+8)) for v in rgb)
+                           for name, rgb in _PALETTES[preset].items()}
+                reference = StrokeCanvas(width, height, camera, aspect)
+                _nest(reference, layout.nest, palette, young)
+                if age is None:
+                    reference.depth = .8
+                    for point in reference.points:
+                        x, y = map(round, reference.project(*point))
+                        self.assertTrue(0 <= x < width and 0 <= y < height, point)
+                footprint = {(x, y) for y, row in enumerate(reference.colors)
+                             for x, color in enumerate(row) if color is not None}
+                self.assertTrue(footprint)
+                decorations = Canvas(width, height, camera, aspect)
+                _focal_tree(decorations, snapshot['time'], motion, layout.wind_phase, palette)
+                _brachiosaurus(decorations, snapshot, motion, palette)
+                _foreground(decorations, snapshot['time'], motion,
+                            replace(layout, nest=None), palette)
+                scene = Canvas(width, height, camera, aspect)
+                draw_scene(scene, snapshot, config)
+                with self.subTest(seed=seed, grid=(width, height, aspect),
+                                  preset=preset, reduced=reduced, age=age):
+                    for x, y in footprint:
+                        self.assertIsNone(decorations.colors[y][x], (x, y))
+                        self.assertEqual((scene.chars[y][x], scene.colors[y][x]),
+                                         (reference.chars[y][x], reference.colors[y][x]))
+
+    def test_entire_browsing_group_translates_rigidly_with_shared_model_offset(self):
+        for motion in (1, .18):
+            for reaction in (0, .5, 1):
+                snapshot = dict(self.snapshot, time=13.7, brachiosaurus_reaction=reaction)
+                for paint in (
+                    lambda c: _brachiosaurus(c, snapshot, motion, self.palette),
+                    lambda c: _focal_tree(c, 13.7, motion, .4, self.palette),
+                ):
+                    shifted = StrokeCanvas(480, 180)
+                    paint(shifted)
+                    authored = StrokeCanvas(480, 180)
+                    with patch('character_art.FOCAL_OFFSET_X', 0):
+                        paint(authored)
+                    self.assertEqual(len(shifted.points), len(authored.points))
+                    for a, b in zip(shifted.points, authored.points):
+                        self.assertAlmostEqual(a[0]-b[0], FOCAL_OFFSET_X)
+                        self.assertAlmostEqual(a[1], b[1])
+
+    def test_actual_hatch_path_finishes_behind_relocated_parent_for_seeded_gaits(self):
+        for seed in (0, 1, 17, 42, 2026, 2**53-1):
+            layout = generate_layout(seed, {})
+            event = NestHatching(layout.nest, layout.hatching_seed, layout.hatching_phase)
+            event.advance(event.deadline, event.deadline)
+            born = event.born
+            previous_x = None
+            for age in (11, 15, 20, 25, 29, 32):
+                event.advance(event.elapsed_ns+SECOND, born+age*SECOND)
+                young = event.current()
+                if previous_x is not None:
+                    self.assertGreaterEqual(young['x'], previous_x)
+                previous_x = young['x']
+                for motion in (1, .18):
+                    canvas = Canvas(240, 80)
+                    _young_brachiosaurus(canvas, young, layout.nest, motion, self.palette)
+                    pixels = self.owned(canvas)
+                    self.assertTrue(pixels)
+                    snapshot = dict(self.snapshot, layout=layout, time=age,
+                                    brachiosaurus_reaction=.7)
+                    _brachiosaurus(canvas, snapshot, motion, self.palette)
+                    if age >= 29:
+                        self.assertFalse(self.owned(canvas))
+                        self.assertTrue(pixels <= self.owned(canvas, 'brachiosaurus'))
+                    if age == 11:
+                        self.assertEqual(self.owned(canvas), pixels)
+
+    def test_narrow_default_and_wide_frames_fit_stationary_focal_group_and_nest(self):
+        for width, height, aspect in ((80, 40, 3), (120, 36, 2), (240, 60, 1.2)):
+            for camera in ((-4, -2), (0, 0), (4, 2)):
+                canvas = Canvas(width, height, camera, aspect)
+                nest = self.snapshot['layout'].nest
+                canvas.depth = .8
+                for point in ((nest.x-nest.radius, nest.y-.5),
+                              (nest.x+nest.radius, nest.y+.45)):
+                    x, y = canvas.project(*point)
+                    self.assertGreaterEqual(round(x), 0)
+                    self.assertLess(round(x), width)
+                    self.assertGreaterEqual(round(y), 0)
+                    self.assertLess(round(y), height)
+                for time in (0, 7, 19):
+                    frame = StrokeCanvas(width, height, camera, aspect)
+                    snapshot = dict(self.snapshot, time=time, brachiosaurus_reaction=.7)
+                    _focal_tree(frame, time, 1, snapshot['layout'].wind_phase, self.palette)
+                    _brachiosaurus(frame, snapshot, 1, self.palette)
+                    for point in frame.points:
+                        x, y = frame.project(*point)
+                        self.assertGreaterEqual(round(x), 0)
+                        self.assertLess(round(x), width)
+                        self.assertGreaterEqual(round(y), 0)
+                        self.assertLess(round(y), height)
+                    self.assertEqual(_brachiosaurus_pose(snapshot, 1)['body'](69, 44),
+                                     (69+FOCAL_OFFSET_X, 44))
+
     def test_every_young_pixel_is_covered_by_actual_parent_raster_at_path_end(self):
         grids = ((100, 40, 1.2), (160, 60, 2), (240, 80, 3),
                  (320, 100, 1.6), (400, 150, 2), (500, 200, 3))
@@ -275,7 +404,8 @@ class HatchingArtwork(unittest.TestCase):
             for camera in ((-4, -2), (0, 0), (4, 2)):
                 for reaction in (0, .5, 1):
                     with self.subTest(grid=(width, height, aspect), camera=camera, reaction=reaction):
-                        pose = dict(self.pose, state='settling', x=69, foot_y=48.6,
+                        pose = dict(self.pose, state='settling',
+                                    x=YOUNG_PARENT_TARGET[0], foot_y=YOUNG_PARENT_TARGET[1],
                                     depth=.39, reaction=reaction, phase=1.3)
                         canvas = self.frame(pose, width, height, aspect, camera)
                         young = self.owned(canvas)
@@ -286,7 +416,7 @@ class HatchingArtwork(unittest.TestCase):
                         self.assertTrue(young <= self.owned(canvas, 'brachiosaurus'))
 
     def test_parent_progressively_occludes_child_without_altering_ordinary_layers(self):
-        before = self.frame(dict(self.pose, x=82, foot_y=51, depth=.65))
+        before = self.frame(dict(self.pose, x=82+FOCAL_OFFSET_X, foot_y=51, depth=.65))
         original = self.owned(before)
         _brachiosaurus(before, self.snapshot, 1, self.palette)
         remaining = self.owned(before)

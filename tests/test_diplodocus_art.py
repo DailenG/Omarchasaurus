@@ -15,7 +15,7 @@ from character_art import (_PALETTES, _brachiosaurus, _diplodocus,
                            _diplodocus_pose, _distance_and_lake, _focal_tree,
                            _foreground, _lily_pad, _plesiosaurus, _water_jump,
                            draw_scene, visible_cast_members)
-from layout import WATER_DEPTH, LilyPad, Rock, Tree
+from layout import FOCAL_OFFSET_X, WATER_DEPTH, LilyPad, Rock, Tree
 
 
 class DiplodocusArtwork(unittest.TestCase):
@@ -251,7 +251,11 @@ class DiplodocusArtwork(unittest.TestCase):
             self.assertTrue(all(painted.owners[y][x] == owner for x, y in overlap), kind)
         for kind in ('tree', 'brachiosaurus', 'rock'):
             occluder = Canvas(480, 120)
-            painted = self.frame()
+            # Place the swimmer under the focal group, independently of where
+            # the scene composition authors that group.
+            pose = dict(self.pose, x=self.pose['x'] + FOCAL_OFFSET_X) if kind != 'rock' else self.pose
+            foreground_isolated = self.frame(pose)
+            painted = self.frame(pose)
             if kind == 'tree':
                 paint = lambda c: _focal_tree(c, 0, 1, 0, _PALETTES['dusk'])
             elif kind == 'brachiosaurus':
@@ -263,7 +267,7 @@ class DiplodocusArtwork(unittest.TestCase):
             paint(painted)
             pixels = {(x, y) for y, row in enumerate(occluder.colors)
                       for x, color in enumerate(row) if color is not None}
-            overlap = pixels & self.owned(isolated)
+            overlap = pixels & self.owned(foreground_isolated)
             self.assertTrue(overlap, kind)
             for x, y in overlap:
                 self.assertNotEqual(painted.owners[y][x], 'diplodocus', kind)

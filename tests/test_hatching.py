@@ -14,7 +14,7 @@ from configuration import settings
 from engine import ACTOR_NAMES, World
 from hatching import (SECOND, YOUNG_EXTENTS, YOUNG_HEIGHT,
                       NestHatching, egg_offsets, young_brachiosaurus_bounds)
-from layout import generate_layout
+from layout import YOUNG_PARENT_TARGET, generate_layout
 
 YOUNG = 'brachiosaurus:young'
 VIEW = (23, 0, 123, 60)
@@ -126,15 +126,12 @@ class HatchingLifecycle(unittest.TestCase):
         path = [self.age(event, age) for age in range(11, 30)]
         self.assertEqual([p['x'] for p in path], sorted(p['x'] for p in path))
         self.assertTrue(all(p['foot_y'] > 48 for p in path))
-        distance = math.hypot(69 - start['x'], 48.6 - start['foot_y'])
+        target_x, target_y = YOUNG_PARENT_TARGET
+        distance = math.hypot(target_x - start['x'], target_y - start['foot_y'])
         self.assertAlmostEqual(path[-1]['phase'] - path[0]['phase'], distance * 2.4)
         final = path[-1]
-        self.assertEqual((final['x'], final['foot_y'], final['depth']), (69, 48.6, .39))
-        left, top, right, bottom, _ = young_brachiosaurus_bounds(final)
-        self.assertGreater(left, 60)
-        self.assertLess(right, 82)
-        self.assertGreater(top, 39)
-        self.assertLess(bottom, 50)
+        self.assertEqual((final['x'], final['foot_y'], final['depth']),
+                         (*YOUNG_PARENT_TARGET, .39))
 
     def test_endpoints_and_reset_are_continuous_without_replacing_the_clutch(self):
         for boundary in (4, 7, 11, 29, 33):

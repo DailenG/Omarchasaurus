@@ -10,10 +10,12 @@ Item {
     property string statusLine: qsTr("Manual terminal sessions · idle OFF")
     property bool standalone: false
     property bool shuttingDown: false
-    readonly property bool busy: coordinator.running || preview.running || stopper.running
+    readonly property bool busy: coordinator.running || preview.running || stopper.running || control.saving || control.localEventBusy || control.finiteHelperBusy
     signal quitRequested()
     readonly property string pluginId: "dailen.omarchasaurus"
-    readonly property string pluginDir: decodeURIComponent(String(Qt.resolvedUrl(".")).replace(/^file:\/\//, "").replace(/\/$/, ""))
+    readonly property string runtimeVersion: "0.2.0"
+    readonly property var control: controlState
+    readonly property string pluginDir: decodeURIComponent(String(Qt.resolvedUrl("../../")).replace(/^file:\/\//, "").replace(/\/$/, ""))
     readonly property string launcher: pluginDir + "/scripts/launch-dinosaurs"
 
     function configure() {
@@ -51,13 +53,19 @@ Item {
     }
     function shutdown() {
         shuttingDown = true
+        control.shutdown()
         coordinator.stop()
         preview.stop()
     }
 
+    ControlState {
+        id: controlState
+        controller: root
+    }
+
     BoundedProcess {
         id: coordinator
-        command: ["python3", root.launcher, "start"]
+        command: ["python3", root.launcher, "start", "--supervised"]
         timeoutMs: 0
         killGraceMs: 30000
         onOutput: function(text) { root.statusLine = text }
@@ -71,7 +79,7 @@ Item {
     }
     BoundedProcess {
         id: preview
-        command: ["python3", root.launcher, "preview", "--fullscreen"]
+        command: ["python3", root.launcher, "preview", "--fullscreen", "--supervised"]
         timeoutMs: 0
         killGraceMs: 30000
         onOutput: function(text) { root.statusLine = text }
@@ -96,7 +104,7 @@ Item {
 
     Platform.SystemTrayIcon {
         visible: true
-        icon.source: Qt.resolvedUrl("assets/tray.svg")
+        icon.source: Qt.resolvedUrl("../../assets/tray.svg")
         // Static tooltip avoids treating process output as tray-host markup.
         tooltip: qsTr("Omarchasaurus · click for settings · middle-click to enter immersion")
         menu: Platform.Menu {
@@ -120,6 +128,7 @@ Item {
         function configure(): void { root.configure() }
         function status(): string { return root.statusLine }
         function pluginDirectory(): string { return root.pluginDir }
+        function runtimeVersion(): string { return root.runtimeVersion }
     }
     Component.onDestruction: root.shutdown()
 }

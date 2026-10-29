@@ -12,7 +12,7 @@ from cast import cast_groups
 from canvas import Canvas
 from configuration import Settings
 from scene_types import SceneSnapshot
-from layout import HORIZON_Y, METEOR_DEPTH, WATER_DEPTH, WEATHER_DEPTH
+from layout import FOCAL_OFFSET_X, HORIZON_Y, METEOR_DEPTH, WATER_DEPTH, WEATHER_DEPTH
 from hatching import egg_offsets, YOUNG_HEIGHT
 from population import (ANKYLOSAURUS_DEPTH, ANKYLOSAURUS_FOOT_Y,
                         PARASAUROLOPHUS_DEPTH)
@@ -430,23 +430,24 @@ def _focal_tree(canvas, time, motion, wind_phase, palette):
     canvas.depth = .40
     sway = math.sin(time*.37 + wind_phase)*.38*motion
     trunk = palette["trunk"]
+    x = 94 + FOCAL_OFFSET_X
     # Tall araucaria-like trunk, umbrella whorls, and individually drawn needles.
-    canvas.polygon(((93.2, 54), (93.5, 20), (94, 9),
-                    (94.6, 20), (95, 54)), trunk, fill=" ")
-    canvas.line(93.7, 51, 94, 25, palette["tree"])
-    canvas.path(((90.5, 54.3), (93.4, 53.4), (96, 54), (98, 54.2)), trunk)
+    canvas.polygon(((x-.8, 54), (x-.5, 20), (x, 9),
+                    (x+.6, 20), (x+1, 54)), trunk, fill=" ")
+    canvas.line(x-.3, 51, x, 25, palette["tree"])
+    canvas.path(((x-3.5, 54.3), (x-.6, 53.4), (x+2, 54), (x+4, 54.2)), trunk)
     for index, (y, spread) in enumerate(((8, 2.5), (11.4, 4.4),
                                        (15.3, 7.6), (19.5, 7.7),
                                        (26, 7), (33, 5.8))):
         shift = sway*(1-y/58)
         color = palette["tree_light"] if index < 3 else palette["tree"]
-        center = 94+shift
+        center = x+shift
         canvas.bezier(((center-spread, y+2.6), (center-spread*.7, y+.5),
                        (center-1.4, y+1), (center, y)), color)
         canvas.bezier(((center, y), (center+1.4, y+1),
                        (center+spread*.7, y+.5), (center+spread, y+2.6)), color)
-        canvas.line(94, y+4, center-spread*.74, y+1.6, trunk)
-        canvas.line(94, y+4, center+spread*.74, y+1.6, trunk)
+        canvas.line(x, y+4, center-spread*.74, y+1.6, trunk)
+        canvas.line(x, y+4, center+spread*.74, y+1.6, trunk)
         for side in (-1, 1):
             for needle in range(1, 6):
                 fraction = needle/6
@@ -454,8 +455,8 @@ def _focal_tree(canvas, time, motion, wind_phase, palette):
                 ny = y+.7+fraction*1.1
                 canvas.path(((nx-side*.65, ny+.7), (nx, ny-.5),
                              (nx+side*.75, ny+.5)), color)
-    canvas.char(90.2+sway, 17.2, "'", palette["tree_light"])
-    canvas.char(88.3+sway, 18.5, ",", palette["tree"])
+    canvas.char(x-3.8+sway, 17.2, "'", palette["tree_light"])
+    canvas.char(x-5.7+sway, 18.5, ",", palette["tree"])
 
 
 def _pivot(anchor, angle, origin=None, parent=None):
@@ -655,7 +656,8 @@ def _brachiosaurus_pose(snapshot, motion):
     time = snapshot["time"] + snapshot["layout"].brachiosaurus_phase
     response = snapshot["brachiosaurus_reaction"] * motion
     sway = math.sin(time * .39) * .022 * motion
-    joints = [(78.6, 40.7)]
+    body = lambda x, y: (x + FOCAL_OFFSET_X, y)
+    joints = [body(78.6, 40.7)]
     # Three fixed-length links arc the neck forward/down without stretching it.
     for bend in (.24, .52, .84):
         angle = sway + bend * response
@@ -665,10 +667,12 @@ def _brachiosaurus_pose(snapshot, motion):
     head = _pivot((80.3, 17.0), sway + .76 * response + math.sin(time * .71) * .012 * motion,
                   origin=joints[-1])
     return {
+        "body": body,
         "neck": joints,
         "head": head,
         "jaw": _pivot((84.2, 16.2), .40 * response, parent=head),
-        "tail": _pivot((56.5, 45.0), math.sin(time * .53) * .035 * motion + .28 * response),
+        "tail": _pivot((56.5, 45.0), math.sin(time * .53) * .035 * motion + .28 * response,
+                       parent=body),
         "response": response,
     }
 
@@ -812,7 +816,7 @@ def _brachiosaurus_neck_rails(joints, head):
     widths = (3.35, 2.75, 2.3, 1.9)
     back = [(j[0] - w * n[0], j[1] - w * n[1]) for j, w, n in zip(joints, widths, joint_normals)]
     front = [(j[0] + w * n[0], j[1] + w * n[1]) for j, w, n in zip(joints, widths, joint_normals)]
-    back[0], front[0] = (75.3, 39.0), (82.0, 42.4)
+    back[0], front[0] = (75.3 + FOCAL_OFFSET_X, 39.0), (82.0 + FOCAL_OFFSET_X, 42.4)
     back[-1], front[-1] = head(78.4, 17.0), head(82.2, 17.1)
     return back, front
 
@@ -910,6 +914,7 @@ def _brachiosaurus(canvas, snapshot, motion, palette):
     canvas.depth = .40
     time = snapshot["time"] + snapshot["layout"].brachiosaurus_phase
     pose = _brachiosaurus_pose(snapshot, motion)
+    body = pose["body"]
     joints = pose["neck"]
     head, jaw, tail = pose["head"], pose["jaw"], pose["tail"]
     response = pose["response"]
@@ -921,11 +926,12 @@ def _brachiosaurus(canvas, snapshot, motion, palette):
     # Four feet remain on the bank; the far pair is deliberately subdued.
     for x, bottom, leg_color in ((65.0, 53.4, shade), (77, 53.5, shade),
                                   (60.5, 54, color), (73.1, 54, color)):
-        canvas.polygon(((x-.9, 46), (x+1.2, 46.5), (x+1, bottom-1),
-                        (x+1.8, bottom-.2), (x+1.7, bottom),
-                        (x-1.1, bottom), (x-1.3, bottom-1.1)),
-                       leg_color, owner=owner, fill=" ")
-        canvas.line(x+.1, bottom-.7, x+.1, bottom, light, owner=owner)
+        canvas.polygon(tuple(body(px, py) for px, py in (
+            (x-.9, 46), (x+1.2, 46.5), (x+1, bottom-1),
+            (x+1.8, bottom-.2), (x+1.7, bottom),
+            (x-1.1, bottom), (x-1.3, bottom-1.1))),
+            leg_color, owner=owner, fill=" ")
+        canvas.line(*body(x+.1, bottom-.7), *body(x+.1, bottom), light, owner=owner)
 
     # One continuous tail/body/neck/head silhouette keeps torso vertices fixed
     # while the fixed-length neck, skull/jaw and tail articulate around joints.
@@ -945,22 +951,23 @@ def _brachiosaurus(canvas, snapshot, motion, palette):
             (head(89.1, 15.5), head(88.8, 17.6), head(85, 17.5), head(82.2, 17.1)),
         )
     segments = (
-        (tail(44, 49), tail(48, 48.6), tail(52, 44.5), (57, 43)),
-        ((57, 43), (58, 37.2), (69, 35.7), (75.3, 39)),
+        (tail(44, 49), tail(48, 48.6), tail(52, 44.5), body(57, 43)),
+        (body(57, 43), body(58, 37.2), body(69, 35.7), body(75.3, 39)),
         *_catmull_beziers(back_rail),
         *head_segments,
         *_catmull_beziers(front_rail[::-1]),
-        ((82, 42.4), (83.7, 47.6), (77, 50), (69, 50)),
-        ((69, 50), (62, 50), (59, 47.1), (56, 47)),
-        ((56, 47), tail(51, 48.1), tail(47, 50.5), tail(44, 49)),
+        (body(82, 42.4), body(83.7, 47.6), body(77, 50), body(69, 50)),
+        (body(69, 50), body(62, 50), body(59, 47.1), body(56, 47)),
+        (body(56, 47), tail(51, 48.1), tail(47, 50.5), tail(44, 49)),
     )
     canvas.polygon(_outline(segments), color, owner=owner, fill=" ")
-    canvas.bezier(((60, 46.3), (64, 48.4), (73, 49.2), (78, 46.3)), shade, owner=owner)
+    canvas.bezier(tuple(body(x, y) for x, y in (
+        (60, 46.3), (64, 48.4), (73, 49.2), (78, 46.3))), shade, owner=owner)
     canvas.bezier((joints[0], joints[1], joints[2], joints[3]), shade, owner=owner)
     for x, y in ((59.5, 42.5), (62, 40), (65.6, 39.3), (69, 39.9),
                  (72.8, 41), (76, 43), (63, 44.4), (67, 42.2),
                  (70.5, 45), (74, 46.3), (60.5, 45.8)):
-        canvas.char(x, y, ".", shade, owner=owner)
+        canvas.char(*body(x, y), ".", shade, owner=owner)
     for jx, jy in joints[1:-1]:
         canvas.char(jx - .6, jy, ".", light, owner=owner)
     canvas.char(*head(83, 14.6), "-" if snapshot["brachiosaurus_blink"] else "o",
@@ -1387,7 +1394,7 @@ def _foreground(canvas, time, motion, layout, palette, hatching=None, *, nest_ba
     for flower in layout.flowers:
         sway = math.sin(time*.57 + layout.wind_phase + flower.phase)*.14*motion
         _flower(canvas, flower, palette, sway)
-    for x, y in ((23, 57.6), (34, 56.8), (44, 58.7), (57, 57.2),
+    for x, y in ((23, 57.6), (34, 56.8), (50, 58.7), (57, 57.2),
                  (69, 58.5), (79, 57.4), (98, 59)):
         canvas.char(x, y, ".", palette["ground"])
 

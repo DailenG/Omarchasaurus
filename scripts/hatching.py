@@ -5,7 +5,7 @@ from fractions import Fraction
 import math
 import random
 
-from layout import Nest
+from layout import Nest, YOUNG_PARENT_TARGET
 from scene_types import ActorBounds, HatchingPose, Nanoseconds, ViewportBounds
 
 SECOND = 1_000_000_000
@@ -136,9 +136,10 @@ class NestHatching:
             state = 'settling'
             crack = emerge = progress = 1.0
             reset = _ease((age - 29) / 4)
-        x = egg_x + (69.0 - egg_x) * progress
-        foot_y = nest.y + YOUNG_HEIGHT * (1 - emerge) + (48.6 - nest.y) * progress
-        distance = math.hypot(69.0 - egg_x, 48.6 - nest.y) * progress
+        target_x, target_y = YOUNG_PARENT_TARGET
+        x = egg_x + (target_x - egg_x) * progress
+        foot_y = nest.y + YOUNG_HEIGHT * (1 - emerge) + (target_y - nest.y) * progress
+        distance = math.hypot(target_x - egg_x, target_y - nest.y) * progress
         return HatchingPose(
             id='brachiosaurus:young', generation=self.generation, state=state,
             egg_index=self.egg_index, egg_x=egg_x, egg_y=egg_y,
