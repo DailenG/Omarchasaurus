@@ -5,13 +5,16 @@ from fractions import Fraction
 import math
 import random
 
-from layout import Nest, YOUNG_PARENT_TARGET
+from layout import Nest
 from scene_types import ActorBounds, HatchingPose, Nanoseconds, ViewportBounds
 
 SECOND = 1_000_000_000
 YOUNG_EXTENTS = (-4.2, -5.8, 2.6, .2)
 YOUNG_HEIGHT = 5.8
-DURATION = 33 * SECOND
+NEST_DEPTH = .8
+DEPARTURE_AT = 30 * SECOND
+_SCURRY_SPEED = 8
+_SCURRY_RAMP = 2
 
 
 def egg_offsets(nest: Nest) -> tuple[float, ...]:
@@ -76,13 +79,47 @@ class NestHatching:
                 and nest.y + .5 >= top
                 and nest.y - 1.6 <= bottom)
 
+    def start(self, egg_index: int | None = None) -> bool:
+        """Start now without touching the independent automatic schedule."""
+        nest = self.nest
+        if self.active or nest is None or not self._nest_visible():
+            return False
+        slots = egg_offsets(nest)
+        if egg_index is not None and (type(egg_index) is not int
+                                      or not 0 <= egg_index < len(slots)):
+            return False
+        self.generation += 1
+        self.active = True
+        self.born = self.walk_ns
+        first = int(self.phase / math.tau * len(slots)) % len(slots)
+        self.egg_index = ((first + self.generation) % len(slots)
+                          if egg_index is None else egg_index)
+        return True
+
+    def _finish_walk(self) -> Fraction:
+        """First nanosecond with the entire rigid body past the guarded edge."""
+        assert self.nest is not None
+        edge = self.bounds[2] + 4 * NEST_DEPTH + 2
+        distance = Fraction(edge - (self.nest.x + 8) - YOUNG_EXTENTS[0])
+        if distance < 0:
+            duration = 0
+        elif distance <= _SCURRY_SPEED * _SCURRY_RAMP / 2:
+            # d = speed * t² / (2 * ramp); floor(root) + 1 clears strictly.
+            squared_ns = distance * (2 * _SCURRY_RAMP * SECOND ** 2) / _SCURRY_SPEED
+            duration = math.isqrt(squared_ns.numerator // squared_ns.denominator) + 1
+        else:
+            seconds = distance / _SCURRY_SPEED + Fraction(_SCURRY_RAMP, 2)
+            duration_ns = seconds * SECOND
+            duration = duration_ns.numerator // duration_ns.denominator + 1
+        return self.born + DEPARTURE_AT + duration
+
     def advance(self, elapsed_ns: Nanoseconds, walk_ns: Nanoseconds,
                 *, can_start: bool = True) -> None:
         """Interpolate deadline and completion crossings in chronological order."""
         end_elapsed, end_walk = Fraction(elapsed_ns), Fraction(walk_ns)
         elapsed, walk = self.elapsed_ns, self.walk_ns
         while True:
-            finish = self.born + DURATION if self.active else None
+            finish = self._finish_walk() if self.active else None
             arrival = (Fraction(0) if self.deadline <= elapsed else
                        (self.deadline - elapsed) / (end_elapsed - elapsed)
                        if end_elapsed > elapsed else None)
@@ -93,13 +130,9 @@ class NestHatching:
                 walk += (end_walk - walk) * arrival
                 elapsed += (end_elapsed - elapsed) * arrival
                 self.deadline += self._interval()
-                if can_start and not self.active and self.nest is not None and self._nest_visible():
-                    self.generation += 1
-                    self.active = True
-                    self.born = walk
-                    slots = egg_offsets(self.nest)
-                    first = int(self.phase / math.tau * len(slots)) % len(slots)
-                    self.egg_index = (first + self.generation) % len(slots)
+                if can_start:
+                    self.elapsed_ns, self.walk_ns = elapsed, walk
+                    self.start()
             elif leaving is not None and leaving <= 1:
                 elapsed += (end_elapsed - elapsed) * leaving
                 walk += (end_walk - walk) * leaving
@@ -115,7 +148,8 @@ class NestHatching:
         nest = self.nest
         age = float((self.walk_ns - self.born) / SECOND)
         egg_x, egg_y = nest.x + egg_offsets(nest)[self.egg_index], nest.y - .8
-        wobble = crack = emerge = reset = stride = 0.0
+        wobble = crack = emerge = stride = 0.0
+        reset = _ease((age - (DEPARTURE_AT / SECOND - 4)) / 4)
         progress = 0.0
         if age < 4:
             state = 'wobbling'
@@ -127,24 +161,32 @@ class NestHatching:
             state = 'hatching'
             crack = 1.0
             emerge = _ease((age - 7) / 4)
-        elif age < 29:
+        elif age < 17:
             state = 'toddling'
             crack = emerge = 1.0
-            progress = _ease((age - 11) / 18)
-            stride = math.sin(math.pi * (age - 11) / 18) ** 2
-        else:
-            state = 'settling'
+            progress = _ease((age - 11) / 6)
+            stride = math.sin(math.pi * (age - 11) / 6) ** 2
+        elif age < DEPARTURE_AT / SECOND:
+            state = 'lingering'
             crack = emerge = progress = 1.0
-            reset = _ease((age - 29) / 4)
-        target_x, target_y = YOUNG_PARENT_TARGET
-        x = egg_x + (target_x - egg_x) * progress
-        foot_y = nest.y + YOUNG_HEIGHT * (1 - emerge) + (target_y - nest.y) * progress
-        distance = math.hypot(target_x - egg_x, target_y - nest.y) * progress
+        else:
+            state = 'scurrying'
+            crack = emerge = progress = 1.0
+            departing = age - DEPARTURE_AT / SECOND
+            stride = _ease(departing / _SCURRY_RAMP)
+        target_x = nest.x + 8
+        distance = (target_x - egg_x) * progress
+        if state == 'scurrying':
+            ramp = min(departing, _SCURRY_RAMP)
+            distance += (_SCURRY_SPEED * ramp * ramp / (2 * _SCURRY_RAMP)
+                         + _SCURRY_SPEED * max(0, departing - _SCURRY_RAMP))
+        x = egg_x + distance
+        foot_y = nest.y + YOUNG_HEIGHT * (1 - emerge)
         return HatchingPose(
             id='brachiosaurus:young', generation=self.generation, state=state,
             egg_index=self.egg_index, egg_x=egg_x, egg_y=egg_y,
             wobble=wobble * (.18 if calm else 1), crack=crack,
             emerge=emerge, reset=reset, x=x, foot_y=foot_y,
-            depth=.8 + (.39 - .8) * progress,
+            depth=NEST_DEPTH,
             phase=self.phase + distance * 2.4, stride=stride,
             blink=(age + self.phase) % 5.7 > 5.5, reaction=reaction)

@@ -25,7 +25,7 @@
   <a href="LICENSE"><kbd>MIT</kbd></a>
   &nbsp; <kbd>Python 3.11+</kbd>
   &nbsp; <kbd>Omarchy Quattro</kbd>
-  &nbsp; <kbd>Development preview · 0.2.0</kbd>
+  &nbsp; <kbd>Development preview · 0.3.0</kbd>
 </p>
 
 ![Omarchasaurus production character-grid snapshot: a dinosaur valley drawn in a truecolor terminal](preview.png)
@@ -74,6 +74,7 @@ In **Enter Immersion**, use the mouse to explore and the keyboard to adjust the 
 | Input | Action |
 | --- | --- |
 | Click a dinosaur | Articulated head, jaw or tail reaction |
+| Click an egg or the nest | Hatch one young Brachiosaurus if a slot is free; click again after it leaves |
 | Click open sky | Meteor; at most one active |
 | Click lake water | Animal leap and splash; requires a free animal slot |
 | **Q / Esc** | Quit |
@@ -88,7 +89,7 @@ These keys do not save preferences; **N** resets seeded schedules rather than re
 
 - **Shape a valley:** [Settings](#settings), [Randomize Valley](#randomize-valley), [interaction and events](#interaction-and-events).
 - **Explore on demand:** [Try an event without waiting](#try-an-event-without-waiting).
-- **Maintain an installation:** [Updating to 0.2.0 and the one-time 0.1.0 migration](#updating--020), [removing](#removing).
+- **Maintain an installation:** [Updating to 0.3.0 and the one-time 0.1.0 migration](#updating--030), [removing](#removing).
 - **Understand the boundaries:** [Files, privacy and security](#files-privacy-and-security-boundaries), [development checks and release policy](#development-checks), [license](#license).
 
 ## Settings
@@ -110,13 +111,15 @@ It never saves automatically or silently rerolls an existing scene. Rotating vis
 
 ### Interaction and events
 
-In immersion, click a dinosaur for an articulated head/jaw/tail reaction, open sky for a meteor, or lake water for a small animal leap and splash. One meteor and one lake leap can coexist; the leap needs a free animal slot. Additional clicks do not queue.
+In immersion, click a dinosaur for an articulated head/jaw/tail reaction, an egg or the nest to hatch a young Brachiosaurus, open sky for a meteor, or lake water for a small animal leap and splash. One hatchling, one meteor and one lake leap can coexist within the animal ceiling. Extra clicks never queue or remove an existing animal.
+
+The hatchling wobbles/cracks out, toddles beside the nest and lingers. About **30 unpaused seconds after hatching begins at normal speed**, it accelerates into a scurry and leaves fully through the right edge. Reduced motion and slower speed take longer. Its seat remains reserved until its whole body clears the current viewport; resizing never relocates it. The shell refills gently before departure. Once the baby has fully left, click the nest again—there is no extra 8–15-minute wait. Pause freezes the sequence; egg clicks while paused, busy or at a full animal limit are ignored.
 
 Rare events use **unpaused session time**, not wall-clock time between sessions:
 
 - Soft volcano puffs: 3–7 minutes.
 - Pteranodon flocks: 4–9 minutes, subject to free seats.
-- Brachiosaurus hatching: 8–15 minutes, with a nest and one free seat.
+- Automatic Brachiosaurus hatching: 8–15 minutes, with a nest and one free seat; independent of egg clicks.
 - Gentle shower followed by a rainbow: 10–15 minutes; no animal seat required.
 
 The terminal canvas scales dinosaur silhouettes with available space and is bounded to 500×200 cells. Default animation is 15 FPS. Occupied seats and viewport-safe entry/exit guards prevent ordinary arrivals from replacing dinosaurs in the middle of the scene.
@@ -141,7 +144,7 @@ For an animation in the current terminal rather than a new window:
 python3 scripts/dinosaurs.py --preview --test-event hatching
 ```
 
-## Updating — 0.2.0
+## Updating — 0.3.0
 
 Apply or discard staged choices and Surface owned previews before updating. Quit any separately launched standalone control room, then use the normal updater:
 
@@ -159,11 +162,17 @@ omarchy plugin enable dailen.omarchasaurus
 omarchy-shell omarchasaurus runtimeVersion
 ```
 
-The final command reports `0.2.0`. After a normal updater rescan, this migration does not require restarting unrelated plugins or the desktop shell.
+The final command reports `0.3.0`. After a normal updater rescan, this migration does not require restarting unrelated plugins or the desktop shell.
 
 **Already-updated development/source checkouts:** the updater reports “up to date” without rescanning. If the plugin-only migration still loads old code, the running registry also has old entrypoint paths. Run `omarchy-shell shell rescanPlugins` **between disabling and re-enabling Omarchasaurus**. This broader rescan closes open plugin panels and reloads non-retained plugin services/widgets, so choose a quiet moment and Apply/discard their pending edits first. It is not a whole-shell restart and is not needed for ordinary later updates between version-scoped releases.
 
 Closing/reopening the control room preserves staged choices and in-flight Apply/Randomize work while its service stays loaded. A release reload discards unsaved staged choices and may atomically cancel finite helpers. Standalone instances keep their loaded release until quit.
+
+### 0.3.0 interaction and artwork changes
+
+Egg/nest clicks now trigger a repeatable hatchling encounter with a timed offscreen departure, without changing automatic hatch deadlines or taking an occupied animal seat. The hatchling stays in the foreground rather than disappearing behind its parent.
+
+Diplodocus now drinks through a smoothly curved chain of fixed-length neck links and a smaller, separately articulated skull, instead of rotating its whole neck as one straight bar. Its torso, feet, visit schedule, residency control and population bounds remain unchanged.
 
 ### 0.2.0 scenery changes
 

@@ -13,14 +13,16 @@ import tempfile
 import unittest
 import termios
 import time
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'scripts'))
 from canvas import Canvas
 from engine import World
 from configuration import load_settings, settings
-from dinosaurs import Input, session_alive
+from dinosaurs import Input, _apply_preview_event, session_alive
 from character_art import _brachiosaurus_pose, _trex_pose, draw_scene
+from hatching import NEST_DEPTH, egg_offsets
 from layout import FOCAL_OFFSET_X, METEOR_DEPTH, WATER_DEPTH
 
 
@@ -205,6 +207,122 @@ class TerminalBehavior(unittest.TestCase):
 
 
 class PreviewInteractions(unittest.TestCase):
+    def hatch_world(self, maximum=2):
+        return World(settings({
+            'animals': {name: False for name in settings()['animals']},
+            'population': {'maxVisible': maximum, 'maxFamilies': 0, 'randomVisitors': False},
+        }))
+
+    def click(self, world, canvas, cell, origin=(0, 0)):
+        x, y = cell[0]+origin[0], cell[1]+origin[1]
+        events = Input().feed(f'\x1b[<0;{x+1};{y+1}M'.encode(), 0)
+        self.assertEqual(events, [('click', (x, y))])
+        return _apply_preview_event(world, events[0], canvas, origin, world.config, {}, {})
+
+    def owner_cell(self, canvas, owner, near=None):
+        cells = [(x, y) for y, row in enumerate(canvas.owners)
+                 for x, value in enumerate(row) if value == owner]
+        self.assertTrue(cells, owner)
+        return cells[0] if near is None else min(
+            cells, key=lambda cell: math.dist(cell, near))
+
+    def test_rendered_egg_click_unprojects_nest_depth_and_selects_that_egg(self):
+        for camera in ((-4, -2), (0, 0), (4, 2)):
+            for index in range(self.hatch_world().layout.nest.eggs):
+                world = self.hatch_world()
+                snapshot = dict(world.snapshot(), camera=camera)
+                canvas = Canvas(480, 180, camera)
+                world.set_viewport(canvas.world_bounds)
+                draw_scene(canvas, snapshot, world.config)
+                nest = world.layout.nest
+                canvas.depth = NEST_DEPTH
+                point = canvas.project(nest.x+egg_offsets(nest)[index], nest.y-.8)
+                cell = self.owner_cell(canvas, 'nest', point)
+                deadline, rng = world.hatching.deadline, world.hatching.rng.getstate()
+                with patch.object(world, 'hatch_egg', wraps=world.hatch_egg) as hatch:
+                    action = self.click(world, canvas, cell, origin=(7, 3))
+                hatch.assert_called_once_with(canvas.unproject(*cell, NEST_DEPTH)[0])
+                self.assertTrue(action.redraw)
+                self.assertEqual(action.diagnostic, 'preview reaction: Brachiosaurus egg hatching')
+                self.assertEqual(world.hatching.egg_index, index)
+                self.assertIn('brachiosaurus:young', world.cast.members)
+                self.assertEqual(world.hatching.deadline, deadline)
+                self.assertEqual(world.hatching.rng.getstate(), rng)
+                identity = world.hatching.generation, world.hatching.born, world.hatching.egg_index
+                repeated = self.click(world, canvas, cell)
+                self.assertFalse(repeated.redraw)
+                self.assertIn('already active', repeated.diagnostic)
+                self.assertEqual((world.hatching.generation, world.hatching.born,
+                                  world.hatching.egg_index), identity)
+                self.assertEqual(world.hatching.deadline, deadline)
+                self.assertEqual(world.hatching.rng.getstate(), rng)
+
+    def test_bowl_pixel_selects_nearest_egg_and_baby_pixels_keep_their_reaction(self):
+        world = self.hatch_world()
+        canvas = self.scene(world)
+        nest = world.layout.nest
+        canvas.depth = NEST_DEPTH
+        near = canvas.project(nest.x-nest.radius+.3, nest.y-.3)
+        cell = self.owner_cell(canvas, 'nest', near)
+        world_x = canvas.unproject(*cell, NEST_DEPTH)[0]
+        index = min(range(nest.eggs),
+                    key=lambda egg: abs(nest.x+egg_offsets(nest)[egg]-world_x))
+        self.assertTrue(self.click(world, canvas, cell).redraw)
+        self.assertEqual(world.hatching.egg_index, index)
+        for _ in range(88):
+            world.advance(250_000_000)
+        self.assertEqual(world.hatching.current()['state'], 'lingering')
+        frame = self.scene(world)
+        with patch.object(world, 'hatch_egg', wraps=world.hatch_egg) as hatch:
+            action = self.click(world, frame, self.owner_cell(frame, 'brachiosaurus:young'))
+        hatch.assert_not_called()
+        self.assertTrue(action.redraw)
+        self.assertEqual(action.diagnostic, 'preview reaction: Young Brachiosaurus')
+
+    def test_paused_and_full_cast_egg_clicks_refuse_without_replacing_occupants(self):
+        for paused, maximum, reason in ((True, 2, 'paused'), (False, 1, 'no free animal slot')):
+            world = self.hatch_world(maximum)
+            world.paused = paused
+            canvas = self.scene(world)
+            before = world.cast.members
+            deadline, rng = world.hatching.deadline, world.hatching.rng.getstate()
+            action = self.click(world, canvas, self.owner_cell(canvas, 'nest'))
+            self.assertFalse(action.redraw)
+            self.assertIn(reason, action.diagnostic)
+            self.assertFalse(world.hatching.active)
+            self.assertEqual(world.cast.members, before)
+            self.assertEqual(world.hatching.deadline, deadline)
+            self.assertEqual(world.hatching.rng.getstate(), rng)
+
+    def test_opaque_scenery_and_dinosaur_remove_nest_clickthrough(self):
+        for owner in (None, 'brachiosaurus'):
+            world = self.hatch_world()
+            canvas = self.scene(world)
+            x, y = self.owner_cell(canvas, 'nest')
+            a = canvas.unproject(x-1, y-1)
+            b = canvas.unproject(x+1, y+1)
+            canvas.polygon(((a[0], a[1]), (b[0], a[1]),
+                            (b[0], b[1]), (a[0], b[1])),
+                           (50, 80, 30), owner=owner, fill=' ')
+            self.assertEqual(canvas.owners[y][x], owner)
+            with patch.object(world, 'hatch_egg', wraps=world.hatch_egg) as hatch:
+                action = self.click(world, canvas, (x, y))
+            hatch.assert_not_called()
+            self.assertFalse(world.hatching.active)
+            self.assertEqual(action.redraw, owner == 'brachiosaurus')
+
+    def test_sky_water_and_dinosaur_click_precedence_stays_separate_from_eggs(self):
+        for owner, diagnostic in (('sky', 'meteor'), ('water', 'water jump'),
+                                  ('brachiosaurus', 'Brachiosaurus')):
+            world = self.hatch_world()
+            canvas = self.scene(world)
+            with patch.object(world, 'hatch_egg', wraps=world.hatch_egg) as hatch:
+                action = self.click(world, canvas, self.owner_cell(canvas, owner))
+            hatch.assert_not_called()
+            self.assertTrue(action.redraw)
+            self.assertIn(diagnostic, action.diagnostic)
+            self.assertFalse(world.hatching.active)
+
     def scene(self, world, pose=None):
         pose = world.snapshot() if pose is None else pose
         canvas = Canvas(400, 96, pose['camera'])

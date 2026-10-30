@@ -19,6 +19,7 @@ from typing import NamedTuple
 
 from canvas import BACKGROUNDS, Canvas
 from engine import ACTOR_NAMES, World
+from hatching import NEST_DEPTH
 from layout import METEOR_DEPTH, WATER_DEPTH
 from configuration import config_path, load_document
 from safe_io import Directory, atomic_json, diagnostic, held_directory, open_file, read_json
@@ -199,6 +200,14 @@ def _apply_preview_event(world, event, canvas, origin, document, overrides, prev
         if world.spawn_water_jump(*canvas.unproject(x, y, WATER_DEPTH)):
             return PreviewAction(redraw=True, diagnostic='preview reaction: water jump')
         return PreviewAction(diagnostic='lake jump already active or no free animal slot; visible animals keep their places')
+    elif owner == 'nest':
+        if world.hatch_egg(canvas.unproject(x, y, NEST_DEPTH)[0]):
+            return PreviewAction(redraw=True, diagnostic='preview reaction: Brachiosaurus egg hatching')
+        reason = ('paused' if world.paused else
+                  'already active' if world.hatching.active else
+                  'no free animal slot' if not world.cast.available(world.config['population']['maxVisible'])
+                  else 'nest unavailable')
+        return PreviewAction(diagnostic=f'egg hatch unavailable: {reason}; visible animals keep their places')
     elif world.react(owner):
         return PreviewAction(redraw=True, diagnostic=f'preview reaction: {ACTOR_NAMES[owner]}')
     return PreviewAction()

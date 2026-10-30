@@ -12,7 +12,7 @@ from fractions import Fraction
 from cast import Cast, cast_groups
 from configuration import Settings
 from diplodocus import DiplodocusVisits
-from hatching import NestHatching
+from hatching import NestHatching, egg_offsets
 from layout import WATER_DEPTH, generate_layout
 from population import (GROUND_EXTENTS, ankylosaurus_pose, herbivore_pose,
                         parasaurolophus_extents, parasaurolophus_family_pose,
@@ -370,6 +370,21 @@ class World:
         if actor == 'diplodocus':
             self._diplodocus_initial_placement = False
         return True
+
+    def hatch_egg(self, x: float) -> bool:
+        """Hatch the nearest egg now without queuing or displacing an animal."""
+        nest = self.hatching.nest
+        if (self.paused or nest is None or not math.isfinite(x)
+                or not self.cast.available(self.config['population']['maxVisible'])):
+            return False
+        offsets = egg_offsets(nest)
+        egg_index = min(range(len(offsets)),
+                        key=lambda index: abs(nest.x + offsets[index] - x))
+        if not self.hatching.start(egg_index):
+            return False
+        self.reactions.pop('brachiosaurus:young', None)
+        self._update_cast()
+        return bool(self.cast.count('brachiosaurus:young'))
 
     def spawn_meteor(self, x, y):
         """One playful background meteor; repeated clicks never build a queue."""

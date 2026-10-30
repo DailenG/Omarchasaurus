@@ -13,7 +13,7 @@ Item {
     readonly property bool busy: coordinator.running || preview.running || stopper.running || control.saving || control.localEventBusy || control.finiteHelperBusy
     signal quitRequested()
     readonly property string pluginId: "dailen.omarchasaurus"
-    readonly property string runtimeVersion: "0.2.0"
+    readonly property string runtimeVersion: "0.3.0"
     readonly property var control: controlState
     readonly property string pluginDir: decodeURIComponent(String(Qt.resolvedUrl("../../")).replace(/^file:\/\//, "").replace(/\/$/, ""))
     readonly property string launcher: pluginDir + "/scripts/launch-dinosaurs"

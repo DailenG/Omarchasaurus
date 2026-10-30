@@ -13,7 +13,7 @@ from canvas import Canvas
 from configuration import Settings
 from scene_types import SceneSnapshot
 from layout import FOCAL_OFFSET_X, HORIZON_Y, METEOR_DEPTH, WATER_DEPTH, WEATHER_DEPTH
-from hatching import egg_offsets, YOUNG_HEIGHT
+from hatching import NEST_DEPTH, egg_offsets, YOUNG_HEIGHT
 from population import (ANKYLOSAURUS_DEPTH, ANKYLOSAURUS_FOOT_Y,
                         PARASAUROLOPHUS_DEPTH)
 
@@ -473,11 +473,19 @@ def _pivot(anchor, angle, origin=None, parent=None):
 
 
 def _diplodocus_pose(pose, motion):
-    """Keep the low torso fixed while rigid neck and tail links articulate."""
+    """A low carriage and fixed-length neck links, not one shoulder-hinged bar."""
     body = lambda x, y: (pose["x"] + x, pose["foot_y"] + y)
     response = pose["reaction"] * motion
     drink = pose["drink"] * (1 - response)
-    neck_angle = .56 * drink + (1 - drink) * (pose["look"] * motion - .13 * response)
+    neck = [body(7, -12)]
+    look = (1 - drink) * pose["look"] * motion - .13 * response
+    for bend in (-.05, .20, .55, .90, 1.20):
+        angle = -.025 * (1 - drink) + bend * drink + look
+        x, y = neck[-1]
+        neck.append((x + 5.6 * math.cos(angle), y + 5.6 * math.sin(angle)))
+    # A small, mostly level skull articulates independently at the neck tip.
+    head = _pivot((0, 0), .40 * drink + look - .025 * (1 - drink),
+                  origin=neck[-1])
     tail = _pivot((-9, -11),
                   math.sin(pose["phase"] * .43) * .025 * motion + .10 * response,
                   parent=body)
@@ -497,13 +505,32 @@ def _diplodocus_pose(pose, motion):
             ))))
     return {
         "body": body,
-        "neck": _pivot((7, -12), neck_angle, parent=body),
+        "neck": neck,
+        "head": head,
         "tail": tail,
         "whip": _pivot((-25, -12),
                        math.sin(pose["phase"] * .43 - .8) * .045 * motion
                        + .08 * response, parent=tail),
         "legs": legs,
     }
+
+
+def _diplodocus_neck_rails(joints, head):
+    normals = []
+    for a, b in zip(joints, joints[1:]):
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        length = math.hypot(dx, dy)
+        normals.append((-dy / length, dx / length))
+    back, front = [], []
+    for index, (joint, width) in enumerate(zip(joints, (1.5, 1.3, 1.05, .85, .65, .5))):
+        before, after = normals[max(0, index - 1)], normals[min(len(normals) - 1, index)]
+        nx, ny = before[0] + after[0], before[1] + after[1]
+        length = math.hypot(nx, ny)
+        nx, ny = nx / length, ny / length
+        back.append((joint[0] - width * nx, joint[1] - width * ny))
+        front.append((joint[0] + width * nx, joint[1] + width * ny))
+    back[-1], front[-1] = head(0, -.55), head(0, .55)
+    return back, front
 
 
 def _diplodocus(canvas, pose, motion, palette):
@@ -516,7 +543,7 @@ def _diplodocus(canvas, pose, motion, palette):
         color, shade, light = (palette["diplodocus" + suffix]
                                for suffix in ("", "_shade", "_light"))
         joints = _diplodocus_pose(pose, motion)
-        body, neck, tail, whip = (joints[key] for key in ("body", "neck", "tail", "whip"))
+        body, head, tail, whip = (joints[key] for key in ("body", "head", "tail", "whip"))
         # A thick tail root tapers into a thin, separately hinged whip.
         canvas.polygon(_outline((
             (tail(-8, -13), tail(-13, -14), tail(-20, -13.3), tail(-25, -12.5)),
@@ -543,22 +570,25 @@ def _diplodocus(canvas, pose, motion, palette):
                        body(4.8, -12.8)), light, owner=owner)
         canvas.bezier((body(-8, -8.5), body(-4, -6.8), body(1, -6.7),
                        body(4.5, -8)), shade, owner=owner)
-        # The long, nearly horizontal neck and tiny toothless skull rotate
-        # together at the shoulder. Mouth reach is unchanged in reduced motion.
+        # Tapered rails follow the articulated vertebral chain. Neither the
+        # neck length nor torso changes as the muzzle lowers to the water.
+        back, front = _diplodocus_neck_rails(joints["neck"], head)
         canvas.polygon(_outline((
-            (neck(6, -13.3), neck(13, -14.2), neck(24, -13.7), neck(31.1, -13.5)),
-            (neck(31.1, -13.5), neck(31.8, -14.4), neck(33.7, -14), neck(34.1, -13)),
-            (neck(34.1, -13), neck(34.7, -12.8), neck(35.3, -12.9), neck(35.2, -12.1)),
-            (neck(35.2, -12.1), neck(35.1, -11.6), neck(33, -11.5), neck(31.2, -12)),
-            (neck(31.2, -12), neck(24, -11.5), neck(14, -10.9), neck(8, -10.5)),
-            (neck(8, -10.5), neck(7, -11), neck(6, -12), neck(6, -13.3)),
+            *_catmull_beziers(back),
+            (back[-1], back[-1], front[-1], front[-1]),
+            *_catmull_beziers(front[::-1]),
+            (front[0], front[0], back[0], back[0]),
         )), color, owner=owner, fill=" ")
-        canvas.bezier((neck(9, -12.8), neck(17, -13.3), neck(25, -13),
-                       neck(30.8, -12.9)), light, owner=owner)
-        canvas.char(*neck(32.5, -13.1), "-" if pose["blink"] else "o",
+        canvas.path(joints["neck"], shade, owner=owner)
+        canvas.polygon(_outline((
+            (head(-.25, -.55), head(.5, -.95), head(1.9, -.85), head(2.8, -.45)),
+            (head(2.8, -.45), head(3.3, -.35), head(3.5, .05), head(3.25, .35)),
+            (head(3.25, .35), head(2.1, .7), head(.5, .7), head(-.25, .55)),
+            (head(-.25, .55), head(-.55, .3), head(-.55, -.3), head(-.25, -.55)),
+        )), color, owner=owner, fill=" ")
+        canvas.char(*head(1.1, -.35), "-" if pose["blink"] else "o",
                     palette["eye"], owner=owner)
-        canvas.char(*neck(34.6, -12.5), ".", shade, owner=owner)
-        canvas.line(*neck(33.5, -12), *neck(35, -12), shade, owner=owner)
+        canvas.line(*head(2, .3), *head(3.15, .3), shade, owner=owner)
     finally:
         canvas.depth, canvas.clip_bottom = previous_depth, previous_clip
 
@@ -854,7 +884,7 @@ def _young_brachiosaurus_pose(pose, motion):
 
 
 def _young_brachiosaurus(canvas, pose, nest, motion, palette):
-    if pose is None or pose["state"] not in ("hatching", "toddling", "settling"):
+    if pose is None or pose["state"] not in ("hatching", "toddling", "lingering", "scurrying"):
         return
     previous = canvas.depth, canvas.clip_bottom, canvas.default_owner
     try:
@@ -1327,7 +1357,7 @@ def _nest(canvas, nest, palette, hatching=None, *, rim_only=False):
         return
     previous = canvas.depth, canvas.clip_bottom, canvas.default_owner
     try:
-        canvas.depth, canvas.default_owner = .8, None
+        canvas.depth, canvas.default_owner = NEST_DEPTH, "nest"
         x, y, radius = nest.x, nest.y, nest.radius
         if not rim_only:
             canvas.ellipse(x, y - .5, radius, .95, palette["nest"], fill=".")
@@ -1440,19 +1470,22 @@ def draw_scene(canvas, snapshot, settings):
     if flock is not None:
         _pteranodons(canvas, flock["members"], selected, palette)
     _ground_paths(canvas, palette)
-    hatching = snapshot["hatching"]
-    young_selected = hatching is not None and hatching["id"] in selected
-    if not young_selected:
-        hatching = None
-    if young_selected:
-        _nest(canvas, layout.nest, palette, hatching)
-        _young_brachiosaurus(canvas, hatching, layout.nest, motion, palette)
     for family in snapshot["parasaurolophus_families"]:
         for member in family["members"]:
             if member["id"] in selected:
                 _parasaurolophus(canvas, member, motion, palette)
+    hatching = snapshot["hatching"]
+    young_selected = hatching is not None and hatching["id"] in selected
+    if hatching is not None and (hatching["id"] not in snapshot["admitted"]
+                                 or settings["population"]["maxVisible"] < 2):
+        hatching = None
     _focal_tree(canvas, time, motion, layout.wind_phase, palette)
     _brachiosaurus(canvas, snapshot, motion, palette)
+    if hatching is not None:
+        # Keep the live shell independent of the baby's viewport culling.
+        _nest(canvas, layout.nest, palette, hatching)
+    if young_selected:
+        _young_brachiosaurus(canvas, hatching, layout.nest, motion, palette)
     if "trex" in selected:
         _trex(canvas, snapshot, motion, palette)
     if "triceratops" in selected:
@@ -1461,6 +1494,6 @@ def draw_scene(canvas, snapshot, settings):
         _triceratops(canvas, snapshot["triceratops_calf"], motion, palette)
     if "stegosaurus" in selected:
         _stegosaurus(canvas, snapshot["herbivores"]["stegosaurus"], motion, palette)
-    _foreground(canvas, time, motion, layout, palette, hatching, nest_back_drawn=young_selected)
+    _foreground(canvas, time, motion, layout, palette, hatching, nest_back_drawn=hatching is not None)
     if "ankylosaurus" in selected:
         _ankylosaurus(canvas, snapshot["ankylosaurus"], motion, palette)

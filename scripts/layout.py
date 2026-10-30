@@ -13,7 +13,6 @@ HORIZON_Y = 35
 # The browsing adult and its tree share one authored horizontal translation.
 FOCAL_OFFSET_X = 8.0
 FOCAL_BOUNDS = (44 + FOCAL_OFFSET_X, 7, 102 + FOCAL_OFFSET_X, 55)
-YOUNG_PARENT_TARGET = (69 + FOCAL_OFFSET_X, 48.6)
 
 
 @dataclass(frozen=True, slots=True)

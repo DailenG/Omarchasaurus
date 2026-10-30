@@ -81,10 +81,9 @@ class DiplodocusArtwork(unittest.TestCase):
                 _distance_and_lake(canvas, None, None, None, 0, motion,
                                    self.layout, _PALETTES['dusk'])
                 joints = _diplodocus_pose(self.pose, motion)
-                mouth = joints['neck'](35, -12)
+                mouth = joints['head'](3.15, .3)
                 self.assertTrue(left < mouth[0] < right)
                 self.assertTrue(top < mouth[1] < bottom)
-                self.assertAlmostEqual(math.dist(joints['neck'](7, -12), mouth), 28)
                 mx, my = self.pixel(canvas, mouth)
                 self.assertEqual(canvas.owners[my][mx], 'water')
                 _diplodocus(canvas, self.pose, motion, _PALETTES['dusk'])
@@ -98,7 +97,7 @@ class DiplodocusArtwork(unittest.TestCase):
                 for state in ('approaching', 'looking', 'departing'):
                     dry = dict(self.pose, drink=0, state=state)
                     dry_joints = _diplodocus_pose(dry, motion)
-                    self.assertLess(dry_joints['neck'](35, -12)[1], top - 8)
+                    self.assertLess(dry_joints['head'](3.15, .3)[1], top - 8)
                     dry_frame = self.frame(dry, motion=motion, camera=camera)
                     water_pixels = [dry_frame.unproject(x, y, .21)
                                     for x, y in self.owned(dry_frame)]
@@ -110,24 +109,30 @@ class DiplodocusArtwork(unittest.TestCase):
         for motion in (1, .18):
             rest = _diplodocus_pose(self.pose, motion)
             clicked = _diplodocus_pose(dict(self.pose, reaction=1), motion)
-            travels[motion] = math.dist(rest['neck'](35, -12), clicked['neck'](35, -12))
-            self.assertLess(clicked['neck'](35, -12)[1], rest['neck'](35, -12)[1])
+            travels[motion] = math.dist(rest['head'](3.15, .3), clicked['head'](3.15, .3))
+            self.assertLess(clicked['head'](3.15, .3)[1], rest['head'](3.15, .3)[1])
             self.assertNotEqual(rest['whip'](-40, -10.6), clicked['whip'](-40, -10.6))
             for drink in (0, .25, .5, .75, 1):
                 for reaction in (0, .35, .7, 1):
                     for look in (-.04, .04):
                         joints = _diplodocus_pose(dict(self.pose, drink=drink,
                                                       reaction=reaction, look=look), motion)
+                        self.assertEqual(len(joints['neck']), len(neutral['neck']))
+                        for a, b, reference_a, reference_b in zip(
+                                joints['neck'], joints['neck'][1:],
+                                neutral['neck'], neutral['neck'][1:]):
+                            self.assertAlmostEqual(math.dist(a, b),
+                                                   math.dist(reference_a, reference_b), places=7)
+                        self.assertEqual(joints['neck'][0], neutral['neck'][0])
                         for part, a, b in (
-                            ('neck', (7, -12), (35, -12)),
-                            ('neck', (31.1, -13.5), (35.2, -12.1)),
+                            ('head', (-.25, -.55), (3.25, .35)),
                             ('tail', (-9, -11), (-25, -12)),
                             ('whip', (-25, -12), (-40, -10.6)),
                         ):
                             self.assertAlmostEqual(math.dist(joints[part](*a), joints[part](*b)),
                                                    math.dist(a, b), places=7)
                         self.assertEqual(joints['body'](-5, -10), neutral['body'](-5, -10))
-                        self.assertGreater(joints['neck'](35, -12)[0], joints['body'](7, -12)[0])
+                        self.assertGreater(joints['head'](3.15, .3)[0], joints['neck'][0][0])
                         self.assertLess(joints['whip'](-40, -10.6)[0], joints['body'](-9, -11)[0])
         self.assertLess(travels[.18], travels[1] / 3)
         frames = [self.frame(dict(self.pose, reaction=reaction))
@@ -161,6 +166,24 @@ class DiplodocusArtwork(unittest.TestCase):
         resting = _diplodocus_pose(dict(self.pose, stride=0), 1)
         self.assertEqual({leg[0][1] for far, leg in resting['legs']}, {27.5})
         self.assertEqual({leg[5][1] for far, leg in resting['legs']}, {36.5})
+
+    def test_drinking_neck_curves_without_look_bobbing_muzzle_out_of_water(self):
+        _, water_top, _, water_bottom = self.layout.water_bounds
+        for motion in (1, .18):
+            mouths = []
+            for look in (-.045, 0, .045):
+                joints = _diplodocus_pose(dict(self.pose, look=look), motion)
+                mouth = joints['head'](3.15, .3)
+                mouths.append(mouth)
+                self.assertTrue(water_top < mouth[1] < water_bottom)
+                angles = [math.atan2(b[1]-a[1], b[0]-a[0])
+                          for a, b in zip(joints['neck'], joints['neck'][1:])]
+                self.assertEqual(angles, sorted(angles))
+                self.assertGreater(angles[-1]-angles[0], .5)
+                self.assertLess(abs(joints['head'](3, 0)[1]-joints['head'](0, 0)[1]),
+                                abs(joints['neck'][-1][1]-joints['neck'][-2][1]))
+            self.assertEqual(mouths, [mouths[0]] * len(mouths))
+
 
     def test_scaling_aspect_and_intermediate_rasters_stay_in_conservative_bounds(self):
         for preset in ('morning', 'dusk'):
@@ -225,7 +248,7 @@ class DiplodocusArtwork(unittest.TestCase):
         self.assertTrue(overlap)
         painted = self.lake_frame(layout=layout)
         self.assertTrue(all(painted.owners[y][x] == 'diplodocus' for x, y in overlap))
-        mouth = _diplodocus_pose(self.pose, 1)['neck'](35, -12)
+        mouth = _diplodocus_pose(self.pose, 1)['head'](3.15, .3)
         pad = LilyPad('over_head', mouth[0]-.7, mouth[1], 2, 0, False)
         jump = dict(origin=mouth, x=mouth[0], y=mouth[1], progress=.5)
         swimmer = dict(self.snapshot['plesiosaurus'], x=mouth[0]-.5,

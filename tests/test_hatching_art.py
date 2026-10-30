@@ -14,8 +14,8 @@ from character_art import (_PALETTES, _brachiosaurus, _brachiosaurus_pose, _egg,
                            _young_brachiosaurus_pose, draw_scene, visible_cast_members)
 from configuration import settings
 from engine import World
-from hatching import NestHatching, SECOND, YOUNG_EXTENTS, YOUNG_HEIGHT, egg_offsets
-from layout import FOCAL_OFFSET_X, YOUNG_PARENT_TARGET, Nest, generate_layout
+from hatching import NEST_DEPTH, NestHatching, SECOND, YOUNG_EXTENTS, YOUNG_HEIGHT, egg_offsets
+from layout import FOCAL_OFFSET_X, Nest, generate_layout
 
 
 class StrokeCanvas(Canvas):
@@ -63,6 +63,26 @@ class HatchingArtwork(unittest.TestCase):
         canvas = Canvas(width, height)
         _nest(canvas, self.nest if nest is None else nest, self.palette, pose)
         return canvas
+
+    def test_nest_owner_matches_only_the_actual_opaque_clutch_bowl_and_rim(self):
+        for rim_only in (False, True):
+            canvas = Canvas(480, 180, camera=(4, 2))
+            _nest(canvas, self.nest, self.palette, rim_only=rim_only)
+            footprint = {(x, y) for y, row in enumerate(canvas.colors)
+                         for x, color in enumerate(row) if color is not None}
+            self.assertTrue(footprint)
+            self.assertEqual(self.owned(canvas, 'nest'), footprint)
+            left, top = map(min, zip(*footprint))
+            right, bottom = map(max, zip(*footprint))
+            rectangle = {(x, y) for y in range(top, bottom+1)
+                         for x in range(left, right+1)}
+            self.assertTrue(rectangle-footprint)
+            if not rim_only:
+                self.assertTrue(any(canvas.chars[y][x] == ' ' for x, y in footprint))
+                self.assertTrue(any(canvas.colors[y][x] == self.palette['egg']
+                                    for x, y in footprint))
+                self.assertTrue(any(canvas.colors[y][x] == self.palette['nest']
+                                    for x, y in footprint))
 
     def test_rigid_parts_and_fixed_length_four_leg_gait_at_intermediate_poses(self):
         travel = {}
@@ -167,6 +187,20 @@ class HatchingArtwork(unittest.TestCase):
         self.assertEqual(counts[0], counts[1])
         self.assertEqual(self.frame(dict(self.pose, state='hatching')).chars, self.frame().chars)
 
+    def test_front_rim_reclaims_its_opaque_pixels_over_the_emerging_baby(self):
+        pose = dict(self.pose, state='hatching', emerge=.8, x=self.pose['egg_x'],
+                    foot_y=self.nest.y+.2*YOUNG_HEIGHT)
+        canvas = self.nest_frame(pose)
+        _young_brachiosaurus(canvas, pose, self.nest, 1, self.palette)
+        before = self.owned(canvas)
+        rim = Canvas(480, 180)
+        _nest(rim, self.nest, self.palette, pose, rim_only=True)
+        overlap = before & self.owned(rim, 'nest')
+        self.assertTrue(overlap)
+        _nest(canvas, self.nest, self.palette, pose, rim_only=True)
+        self.assertFalse(overlap & self.owned(canvas))
+        self.assertTrue(overlap <= self.owned(canvas, 'nest'))
+
     def test_young_and_egg_dimensions_scale_with_terminal_cells_not_fixed_glyphs(self):
         small = self.frame(width=240, height=90)
         large = self.frame(width=480, height=180)
@@ -190,7 +224,7 @@ class HatchingArtwork(unittest.TestCase):
             for index in range(count):
                 first = dict(self.pose, state='wobbling', egg_index=index,
                              wobble=0, crack=0, emerge=0, reset=0)
-                reset = dict(self.pose, state='settling', egg_index=index, reset=1)
+                reset = dict(self.pose, state='scurrying', egg_index=index, reset=1)
                 for pose in (first, reset):
                     frame = self.nest_frame(pose, nest)
                     self.assertEqual(frame.chars, normal.chars)
@@ -206,8 +240,8 @@ class HatchingArtwork(unittest.TestCase):
                 states = [dict(self.pose, egg_index=index, state='wobbling', emerge=0, crack=0, wobble=.3),
                           dict(self.pose, egg_index=index, state='cracking', emerge=0, crack=.6),
                           dict(self.pose, egg_index=index, state='hatching', emerge=.7),
-                          dict(self.pose, egg_index=index, state='settling', reset=.3),
-                          dict(self.pose, egg_index=index, state='settling', reset=.75)]
+                          dict(self.pose, egg_index=index, state='lingering', reset=.3),
+                          dict(self.pose, egg_index=index, state='lingering', reset=.75)]
                 for pose in states:
                     frame = self.nest_frame(pose, nest)
                     self.assertNotEqual(frame.chars, normal.chars)
@@ -228,13 +262,13 @@ class HatchingArtwork(unittest.TestCase):
             return sum((a.chars[y][x], a.colors[y][x]) != (b.chars[y][x], b.colors[y][x])
                        for y in range(a.height) for x in range(a.width))
         for boundary in (0, .5, 1):
-            a = self.nest_frame(dict(self.pose, state='settling', reset=max(0, boundary-1e-6)))
-            b = self.nest_frame(dict(self.pose, state='settling', reset=min(1, boundary+1e-6)))
+            a = self.nest_frame(dict(self.pose, state='lingering', reset=max(0, boundary-1e-6)))
+            b = self.nest_frame(dict(self.pose, state='lingering', reset=min(1, boundary+1e-6)))
             self.assertLessEqual(difference(a, b), 2)
         cracked = self.nest_frame(dict(self.pose, state='cracking', emerge=0))
         opened = self.nest_frame(dict(self.pose, state='hatching', emerge=1e-6))
         self.assertLessEqual(difference(cracked, opened), 8)
-        middle = self.nest_frame(dict(self.pose, state='settling', reset=.5))
+        middle = self.nest_frame(dict(self.pose, state='lingering', reset=.5))
         whole = self.nest_frame()
         self.assertNotEqual(middle.chars, whole.chars)
         # Both fragments have actually gone below the rim, not faded to black.
@@ -243,11 +277,11 @@ class HatchingArtwork(unittest.TestCase):
         px, py = map(round, middle.project(x, self.nest.y-.8))
         self.assertNotEqual(middle.colors[py][px], self.palette['egg'])
 
-    def test_live_nest_reset_preserves_neighbours_and_requires_a_reserved_seat(self):
+    def test_live_shell_reset_survives_baby_culling_but_requires_a_reserved_seat(self):
         nest = self.snapshot['layout'].nest
         index = nest.eggs - 1
-        pose = dict(self.pose, egg_index=index, state='settling', reset=.5,
-                    x=69, foot_y=48.6, depth=.39)
+        pose = dict(self.pose, egg_index=index, state='lingering', reset=.5,
+                    x=500, foot_y=nest.y, depth=NEST_DEPTH)
         def scene(hatching, admitted, maximum=2):
             snapshot = dict(self.snapshot, hatching=hatching, admitted=admitted)
             config = copy.deepcopy(self.config)
@@ -271,9 +305,8 @@ class HatchingArtwork(unittest.TestCase):
 
     def test_full_nest_rim_and_eggs_have_static_clearance_at_maximum_density(self):
         # Compare every opaque nest cell, not just a bounding-box intersection
-        # or a few remaining egg-colored pixels. Include the early hatch pass
-        # and under-parent settlement, when only the rim is repainted after
-        # foreground decorations and the clutch resets independently.
+        # or a few remaining egg-colored pixels. Include the early hatch pass,
+        # the near-nest shell reset and the fully restored departing clutch.
         grids = ((80, 40, 3, None), (80, 40, 3, 0),
                  (120, 36, 2, 2), (240, 60, 1.2, 5),
                  (80, 40, 3, 29), (120, 36, 2, 32))
@@ -324,6 +357,7 @@ class HatchingArtwork(unittest.TestCase):
                         self.assertIsNone(decorations.colors[y][x], (x, y))
                         self.assertEqual((scene.chars[y][x], scene.colors[y][x]),
                                          (reference.chars[y][x], reference.colors[y][x]))
+                        self.assertEqual(scene.owners[y][x], 'nest')
 
     def test_entire_browsing_group_translates_rigidly_with_shared_model_offset(self):
         for motion in (1, .18):
@@ -343,32 +377,30 @@ class HatchingArtwork(unittest.TestCase):
                         self.assertAlmostEqual(a[0]-b[0], FOCAL_OFFSET_X)
                         self.assertAlmostEqual(a[1], b[1])
 
-    def test_actual_hatch_path_finishes_behind_relocated_parent_for_seeded_gaits(self):
+    def test_actual_hatch_path_remains_visible_through_linger_and_scurry(self):
         for seed in (0, 1, 17, 42, 2026, 2**53-1):
             layout = generate_layout(seed, {})
             event = NestHatching(layout.nest, layout.hatching_seed, layout.hatching_phase)
-            event.advance(event.deadline, event.deadline)
-            born = event.born
+            self.assertTrue(event.start())
             previous_x = None
-            for age in (11, 15, 20, 25, 29, 32):
-                event.advance(event.elapsed_ns+SECOND, born+age*SECOND)
+            for age in (11, 15, 17, 25, 29, 30, 31, 32):
+                event.advance(age*SECOND, age*SECOND)
                 young = event.current()
+                self.assertIsNotNone(young)
+                self.assertEqual(young['depth'], NEST_DEPTH)
                 if previous_x is not None:
                     self.assertGreaterEqual(young['x'], previous_x)
                 previous_x = young['x']
-                for motion in (1, .18):
-                    canvas = Canvas(240, 80)
-                    _young_brachiosaurus(canvas, young, layout.nest, motion, self.palette)
-                    pixels = self.owned(canvas)
-                    self.assertTrue(pixels)
+                for reduced in (False, True):
                     snapshot = dict(self.snapshot, layout=layout, time=age,
-                                    brachiosaurus_reaction=.7)
-                    _brachiosaurus(canvas, snapshot, motion, self.palette)
-                    if age >= 29:
-                        self.assertFalse(self.owned(canvas))
-                        self.assertTrue(pixels <= self.owned(canvas, 'brachiosaurus'))
-                    if age == 11:
-                        self.assertEqual(self.owned(canvas), pixels)
+                                    hatching=young, brachiosaurus_reaction=.7,
+                                    admitted=('brachiosaurus', young['id']))
+                    config = copy.deepcopy(self.config)
+                    config['motion']['reducedMotion'] = reduced
+                    canvas = Canvas(480, 180)
+                    draw_scene(canvas, snapshot, config)
+                    self.assertTrue(self.owned(canvas), (seed, age, reduced))
+                    self.assertAlmostEqual(young['foot_y'], layout.nest.y)
 
     def test_narrow_default_and_wide_frames_fit_stationary_focal_group_and_nest(self):
         for width, height, aspect in ((80, 40, 3), (120, 36, 2), (240, 60, 1.2)):
@@ -397,31 +429,35 @@ class HatchingArtwork(unittest.TestCase):
                     self.assertEqual(_brachiosaurus_pose(snapshot, 1)['body'](69, 44),
                                      (69+FOCAL_OFFSET_X, 44))
 
-    def test_every_young_pixel_is_covered_by_actual_parent_raster_at_path_end(self):
-        grids = ((100, 40, 1.2), (160, 60, 2), (240, 80, 3),
-                 (320, 100, 1.6), (400, 150, 2), (500, 200, 3))
-        for width, height, aspect in grids:
-            for camera in ((-4, -2), (0, 0), (4, 2)):
-                for reaction in (0, .5, 1):
-                    with self.subTest(grid=(width, height, aspect), camera=camera, reaction=reaction):
-                        pose = dict(self.pose, state='settling',
-                                    x=YOUNG_PARENT_TARGET[0], foot_y=YOUNG_PARENT_TARGET[1],
-                                    depth=.39, reaction=reaction, phase=1.3)
-                        canvas = self.frame(pose, width, height, aspect, camera)
-                        young = self.owned(canvas)
-                        self.assertTrue(young)
-                        snapshot = dict(self.snapshot, brachiosaurus_reaction=reaction, time=17)
-                        _brachiosaurus(canvas, snapshot, 1, self.palette)
-                        self.assertFalse(self.owned(canvas))
-                        self.assertTrue(young <= self.owned(canvas, 'brachiosaurus'))
+    def test_lingering_and_scurrying_silhouettes_keep_rigid_geometry(self):
+        for state in ('lingering', 'scurrying'):
+            pose = dict(self.pose, state=state, x=105, stride=state == 'scurrying')
+            canvas = self.frame(pose)
+            self.assertTrue(self.owned(canvas))
+            reference = _young_brachiosaurus_pose(self.pose, 1)
+            joints = _young_brachiosaurus_pose(pose, 1)
+            for part in ('body', 'head', 'tail'):
+                for point in ((0, -2), (1, -4), (-3, -2)):
+                    a, b = joints[part](*point), reference[part](*point)
+                    self.assertAlmostEqual(a[0]-b[0], pose['x']-self.pose['x'])
+                    self.assertAlmostEqual(a[1], b[1])
 
-    def test_parent_progressively_occludes_child_without_altering_ordinary_layers(self):
-        before = self.frame(dict(self.pose, x=82+FOCAL_OFFSET_X, foot_y=51, depth=.65))
-        original = self.owned(before)
-        _brachiosaurus(before, self.snapshot, 1, self.palette)
-        remaining = self.owned(before)
-        self.assertTrue(remaining)
-        self.assertLess(len(remaining), len(original))
+    def test_young_paints_in_front_of_focal_tree_and_parent_from_birth(self):
+        for state in ('hatching', 'toddling', 'lingering', 'scurrying'):
+            pose = dict(self.pose, state=state, x=82+FOCAL_OFFSET_X,
+                        foot_y=51, emerge=1)
+            snapshot = dict(self.snapshot, hatching=pose,
+                            admitted=('brachiosaurus', pose['id']))
+            isolated = self.frame(pose)
+            focal = Canvas(480, 180)
+            _focal_tree(focal, 0, 1, snapshot['layout'].wind_phase, self.palette)
+            _brachiosaurus(focal, snapshot, 1, self.palette)
+            overlap = {(x, y) for x, y in self.owned(isolated)
+                       if focal.colors[y][x] is not None}
+            self.assertTrue(overlap)
+            frame = Canvas(480, 180)
+            draw_scene(frame, snapshot, self.config)
+            self.assertTrue(overlap <= self.owned(frame))
 
     def test_real_nearer_walker_occludes_young_in_the_normal_scene_pass(self):
         walker = dict(id='triceratops', x=86, scale=1, foot_y=54.5,
