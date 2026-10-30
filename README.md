@@ -47,7 +47,9 @@ omarchy plugin enable dailen.omarchasaurus
 omarchy-shell omarchasaurus runtimeVersion
 ```
 
-The final command reports `0.2.0`. This does not require restarting unrelated plugins or the desktop shell. An already-up-to-date checkout does not trigger an updater rescan, so it still needs that one-time migration.
+The final command reports `0.2.0`. After a normal updater rescan, this migration does not require restarting unrelated plugins or the desktop shell.
+
+**Already-updated development/source checkouts:** the updater reports “up to date” without rescanning. If the plugin-only migration still loads old code, the running registry also has old entrypoint paths. Run `omarchy-shell shell rescanPlugins` **between disabling and re-enabling Omarchasaurus**. This broader rescan closes open plugin panels and reloads non-retained plugin services/widgets, so choose a quiet moment and Apply/discard their pending edits first. It is not a whole-shell restart and is not needed for ordinary later updates between version-scoped releases.
 
 Closing/reopening the control room preserves staged choices and in-flight Apply/Randomize work while its service stays loaded. A release reload discards unsaved staged choices and may atomically cancel finite helpers. Standalone instances keep their loaded release until quit.
 
