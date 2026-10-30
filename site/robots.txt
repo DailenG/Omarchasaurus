@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://daileng.github.io/Omarchasaurus/sitemap.xml

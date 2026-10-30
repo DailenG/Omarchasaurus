@@ -1,17 +1,55 @@
-# Omarchasaurus
+<p align="center">
+  <a href="https://daileng.github.io/Omarchasaurus/">
+    <img src="site/assets/brand.png" alt="Omarchasaurus" width="960">
+  </a>
+</p>
 
-An interactive truecolor ASCII dinosaur valley for **Omarchy Quattro**, inspired by Omarcharium's terminal style. Dinosaurs, mountains, tall trees, a lake, clouds and flying Pteranodon are drawn with ordinary characters inside a real terminal—no image protocol or separate GPU scene.
+<h1 align="center">A prehistoric valley. A real terminal.</h1>
 
-![Omarchasaurus character-grid snapshot](preview.png)
+<p align="center">
+  Interactive, truecolor ASCII dinosaurs for <strong>Omarchy Quattro</strong>.<br>
+  Ordinary characters. A little wilderness between things.
+</p>
 
-**Development preview:** manual immersion and screensaver-style Start are available. Automatic idle activation and sound are **off and not implemented**. Marketplace submission/approval is separate from this repository; no marketplace verification is claimed.
+<p align="center">
+  <a href="https://daileng.github.io/Omarchasaurus/"><strong>Website</strong></a>
+  &nbsp; / &nbsp;
+  <a href="#install">Get Started</a>
+  &nbsp; / &nbsp;
+  <a href="#controls">Controls</a>
+  &nbsp; / &nbsp;
+  <a href="#documentation">Docs</a>
+</p>
+
+<p align="center">
+  <a href="LICENSE"><kbd>MIT</kbd></a>
+  &nbsp; <kbd>Python 3.11+</kbd>
+  &nbsp; <kbd>Omarchy Quattro</kbd>
+  &nbsp; <kbd>Development preview · 0.2.0</kbd>
+</p>
+
+![Omarchasaurus production character-grid snapshot: a dinosaur valley drawn in a truecolor terminal](preview.png)
+
+<p align="center"><sub>Actual production World/Canvas snapshot, rendered to PNG. No image protocol or separate GPU scene.</sub></p>
+
+**A development preview, not a finished screensaver service.** Manual **Enter Immersion** and screensaver-style **Start** are available. Automatic idle activation and sound are **off and not implemented**. Marketplace submission/approval is separate from this repository; no marketplace verification is claimed.
+
+## In the valley
+
+| Field notes | What is here |
+| --- | --- |
+| **Character, not pixels** | An always-present Brachiosaurus among mountains, a volcano, tall trees, a lake, a nest and clouds—all drawn with ordinary terminal characters. |
+| **Room for company** | T. rex, Triceratops, Stegosaurus, Ankylosaurus, Parasaurolophus and Diplodocus, plus the marine reptile Plesiosaurus and the pterosaur Pteranodon. Arrivals respect the animal ceiling. |
+| **Small encounters** | Click for articulated dinosaur reactions, a sky meteor or a lake leap. Rare hatching, flock, shower, rainbow and volcano events unfold over active session time. |
+| **Your composition** | Morning and Dusk palettes; independent scenery, animal and crowding choices; reduced motion. Randomize stages a valley for review—it never autosaves. |
+| **An intentional pause** | Launch manually on the focused output or Start on every active output. Surface stops only the plugin's owned sessions. |
 
 ## Requirements
 
-- Omarchy Quattro with its Quickshell-based shell and Hyprland.
-- Python 3.11 or newer; runtime Python uses only the standard library.
-- Ghostty or Kitty. The launcher prefers Ghostty and opens separately owned terminal instances.
-- A UTF-8, truecolor terminal and a monospace font. SGR mouse reporting enables interaction.
+- **Omarchy Quattro**, with its Quickshell-based shell and Hyprland.
+- **Python 3.11+**; runtime Python uses only the standard library.
+- **Ghostty or Kitty.** The launcher prefers Ghostty and opens separately owned terminal instances.
+- A **UTF-8, truecolor terminal** and a monospace font. SGR mouse reporting enables interaction.
 
 There is no runtime package installer, source download, build step, account, API key or elevated helper. No sudo or pkexec is required. Dependencies must already be present; the plugin does not install or update them.
 
@@ -29,33 +67,29 @@ omarchy-shell omarchasaurus configure
 
 Choose **Enter Immersion** for an interactive preview on the focused output. **Start All Outputs** opens one owned screensaver-style terminal per active output. **Surface** stops owned sessions only; it does not kill unrelated terminals or other screensavers.
 
-## Updating — 0.2.0
+## Controls
 
-Apply or discard staged choices and Surface owned previews before updating. Quit any separately launched standalone control room, then use the normal updater:
+In **Enter Immersion**, use the mouse to explore and the keyboard to adjust the current session:
 
-```sh
-omarchy plugin update dailen.omarchasaurus
-```
+| Input | Action |
+| --- | --- |
+| Click a dinosaur | Articulated head, jaw or tail reaction |
+| Click open sky | Meteor; at most one active |
+| Click lake water | Animal leap and splash; requires a free animal slot |
+| **Q / Esc** | Quit |
+| **Space** | Pause |
+| **P** | Switch palette |
+| **N** | Choose another seeded layout |
+| **R** | Clear temporary P/N choices and reload saved settings |
 
-From 0.2.0 onward, updates replace the tray service and settings components without restarting the whole desktop shell. Each QML release uses distinct paths for its complete UI payload, avoiding Quickshell's compiled-component cache. The plugin does not fetch updates itself.
+These keys do not save preferences; **N** resets seeded schedules rather than replaying a selected test. In screensaver-style **Start**, ordinary input dismisses owned outputs instead of interacting.
 
-**One-time migration from 0.1.0:** that version retained its service across rescans. After updating, disable only Omarchasaurus, wait for its tray icon to disappear, then enable it again:
+## Documentation
 
-```sh
-omarchy plugin disable dailen.omarchasaurus
-omarchy plugin enable dailen.omarchasaurus
-omarchy-shell omarchasaurus runtimeVersion
-```
-
-The final command reports `0.2.0`. After a normal updater rescan, this migration does not require restarting unrelated plugins or the desktop shell.
-
-**Already-updated development/source checkouts:** the updater reports “up to date” without rescanning. If the plugin-only migration still loads old code, the running registry also has old entrypoint paths. Run `omarchy-shell shell rescanPlugins` **between disabling and re-enabling Omarchasaurus**. This broader rescan closes open plugin panels and reloads non-retained plugin services/widgets, so choose a quiet moment and Apply/discard their pending edits first. It is not a whole-shell restart and is not needed for ordinary later updates between version-scoped releases.
-
-Closing/reopening the control room preserves staged choices and in-flight Apply/Randomize work while its service stays loaded. A release reload discards unsaved staged choices and may atomically cancel finite helpers. Standalone instances keep their loaded release until quit.
-
-### 0.2.0 scenery changes
-
-The complete Brachiosaurus/tree group moves eight world units right; its anatomy, browsing relationship and hatchling destination move together. Nearby plants leave the nest's eggs and rim clear, and the nest sits slightly higher to avoid bottom-row clipping. Narrow framing fits the stationary nest and browsing group together without relocating them as the terminal changes size. Passing animals can still temporarily cross in front of the nest.
+- **Shape a valley:** [Settings](#settings), [Randomize Valley](#randomize-valley), [interaction and events](#interaction-and-events).
+- **Explore on demand:** [Try an event without waiting](#try-an-event-without-waiting).
+- **Maintain an installation:** [Updating to 0.2.0 and the one-time 0.1.0 migration](#updating--020), [removing](#removing).
+- **Understand the boundaries:** [Files, privacy and security](#files-privacy-and-security-boundaries), [development checks and release policy](#development-checks), [license](#license).
 
 ## Settings
 
@@ -107,7 +141,33 @@ For an animation in the current terminal rather than a new window:
 python3 scripts/dinosaurs.py --preview --test-event hatching
 ```
 
-**Q / Esc:** quit. **Space:** pause. **P:** switch palette. **N:** choose another seeded layout. **R:** clear temporary P/N choices and reload saved settings. These keys do not save preferences; N resets seeded schedules rather than replaying a selected test. In screensaver-style Start, ordinary input dismisses owned outputs instead of interacting.
+## Updating — 0.2.0
+
+Apply or discard staged choices and Surface owned previews before updating. Quit any separately launched standalone control room, then use the normal updater:
+
+```sh
+omarchy plugin update dailen.omarchasaurus
+```
+
+From 0.2.0 onward, updates replace the tray service and settings components without restarting the whole desktop shell. Each QML release uses distinct paths for its complete UI payload, avoiding Quickshell's compiled-component cache. The plugin does not fetch updates itself.
+
+**One-time migration from 0.1.0:** that version retained its service across rescans. After updating, disable only Omarchasaurus, wait for its tray icon to disappear, then enable it again:
+
+```sh
+omarchy plugin disable dailen.omarchasaurus
+omarchy plugin enable dailen.omarchasaurus
+omarchy-shell omarchasaurus runtimeVersion
+```
+
+The final command reports `0.2.0`. After a normal updater rescan, this migration does not require restarting unrelated plugins or the desktop shell.
+
+**Already-updated development/source checkouts:** the updater reports “up to date” without rescanning. If the plugin-only migration still loads old code, the running registry also has old entrypoint paths. Run `omarchy-shell shell rescanPlugins` **between disabling and re-enabling Omarchasaurus**. This broader rescan closes open plugin panels and reloads non-retained plugin services/widgets, so choose a quiet moment and Apply/discard their pending edits first. It is not a whole-shell restart and is not needed for ordinary later updates between version-scoped releases.
+
+Closing/reopening the control room preserves staged choices and in-flight Apply/Randomize work while its service stays loaded. A release reload discards unsaved staged choices and may atomically cancel finite helpers. Standalone instances keep their loaded release until quit.
+
+### 0.2.0 scenery changes
+
+The complete Brachiosaurus/tree group moves eight world units right; its anatomy, browsing relationship and hatchling destination move together. Nearby plants leave the nest's eggs and rim clear, and the nest sits slightly higher to avoid bottom-row clipping. Narrow framing fits the stationary nest and browsing group together without relocating them as the terminal changes size. Passing animals can still temporarily cross in front of the nest.
 
 ## Files, privacy and security boundaries
 
@@ -152,6 +212,20 @@ The suite covers animation/admission transitions, palette independence, bounded 
 Every QML code release must increment `manifest.version`, move the **entire** QML payload to `qml/<version>/`, update its entrypoints and `Service.runtimeVersion`, and remove the previous payload. Do not reuse unchanged QML URLs or retain old root wrappers: the host disables Quickshell's own reload and may retain compiled transitive components. Standalone configure resolves and validates the release through the manifest.
 
 The public repository excludes historical desktop captures, development-agent instruction trees and private review corpora. The preview above is an actual production character-grid snapshot rendered to PNG without a desktop capture; no font files are bundled.
+
+## Website
+
+**[Visit the project website](https://daileng.github.io/Omarchasaurus/)** for the visual field guide, Morning/Dusk artwork viewer and installation overview.
+
+The website is plain HTML, CSS and JavaScript in `site/`, with no build step, external fonts, analytics or browser storage. Its artwork comes from the production character canvas; the palette viewer is not a browser port of the simulation.
+
+Preview locally:
+
+```sh
+python3 -m http.server 8080 --bind 127.0.0.1 --directory site
+```
+
+Open `http://127.0.0.1:8080/`. Changes to `site/` on `main` deploy through `.github/workflows/pages.yml`. The workflow publishes **only** the static site directory, with pinned official GitHub Pages actions and deployment-scoped permissions.
 
 ## License
 

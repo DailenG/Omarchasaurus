@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="360" viewBox="0 0 1280 360" role="img" aria-labelledby="title description">
+<title id="title">Omarchasaurus</title><desc id="description">A little prehistory. A lot of personality. An interactive truecolor ASCII valley for Omarchy.</desc>
+<rect width="1280" height="360" rx="18" fill="#101812"/>
+<path d="M54 51h1172M54 309h1172" stroke="#344233"/>
+<g fill="#b6c0a7" font-family="monospace" font-size="13" letter-spacing="2"><text x="60" y="34">A LIVING TERMINAL VALLEY</text><text x="1220" y="34" text-anchor="end">OMARCHY QUATTRO</text></g>
+<text x="57" y="153" fill="#f1efdf" font-family="Georgia,serif" font-size="79" letter-spacing="-3">OMARCHASAURUS</text>
+<text x="60" y="211" fill="#d0ed9c" font-family="Georgia,serif" font-size="34">A little prehistory. A lot of personality.</text>
+<g fill="#b6c0a7" font-family="monospace" font-size="13" letter-spacing="1"><text x="60" y="273">TRUECOLOR ASCII</text><text x="274" y="273">ORIGINAL CREATURES</text><text x="519" y="273">MANUAL IMMERSION</text><text x="60" y="337">OPEN SOURCE / MIT</text><text x="1220" y="337" text-anchor="end">0.2.0 · DEVELOPMENT PREVIEW</text></g>
+<circle cx="1127" cy="179" r="100" fill="none" stroke="#344233"/><circle cx="1127" cy="179" r="88" fill="none" stroke="#344233" stroke-dasharray="2 9"/>
+<g transform="translate(1062 109) scale(4.1)"><path fill="#d0ed9c" stroke="#101812" stroke-width="1" stroke-linejoin="round" d="M3 29l1-13C3 10 5 6 10 4c4-2 8-1 12 2h4c3 0 5 2 5 5v4H15l5 5h10c-1 5-5 9-11 9-3 0-5-1-7-3l-3 4z"/><path fill="#819d66" d="M4 16c0-4 1-7 4-9-1 5 0 9 4 12l4 9-4-2-3 4-6-1z"/><path fill="#f1efdf" d="M18 15h4l-2 4zm7 0h4l-2 4z"/><circle cx="13" cy="9" r="3.2" fill="#f1efdf"/><circle cx="14" cy="9" r="1.5" fill="#101812"/><circle cx="26" cy="10" r="1.2" fill="#101812"/></g>
+</svg>

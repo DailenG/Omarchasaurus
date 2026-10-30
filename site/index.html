@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101812">
+  <title>Omarchasaurus — A little prehistory. A lot of character.</title>
+  <meta name="description" content="A living ASCII dinosaur valley for your Omarchy Quattro terminal. Meet the residents, explore Morning and Dusk, and install the open-source development preview.">
+  <link rel="canonical" href="https://daileng.github.io/Omarchasaurus/">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:site_name" content="Omarchasaurus">
+  <meta property="og:title" content="Omarchasaurus — A little prehistory. A lot of character.">
+  <meta property="og:description" content="An interactive ASCII dinosaur valley. Ordinary characters, extraordinary company. Made for Omarchy Quattro.">
+  <meta property="og:url" content="https://daileng.github.io/Omarchasaurus/">
+  <meta property="og:image" content="https://daileng.github.io/Omarchasaurus/assets/social.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Omarchasaurus, an ASCII dinosaur valley for Omarchy Quattro">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Omarchasaurus — A little prehistory. A lot of character.">
+  <meta name="twitter:description" content="An interactive ASCII dinosaur valley for Omarchy Quattro. Open source. Full of character.">
+  <meta name="twitter:image" content="https://daileng.github.io/Omarchasaurus/assets/social.png">
+  <meta name="twitter:image:alt" content="Omarchasaurus, an ASCII dinosaur valley for Omarchy Quattro">
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./main.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header wrap">
+    <a class="wordmark" href="#" aria-label="Omarchasaurus home"><img src="./assets/favicon.svg" alt="" width="30" height="30">Omarchasaurus<span class="wordmark-period">.</span></a>
+    <nav aria-label="Main navigation">
+      <a href="#valley">The valley</a>
+      <a href="#field-guide">Field guide</a>
+      <a href="#install">Install <span aria-hidden="true">↗</span></a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero wrap" aria-labelledby="hero-title">
+      <div class="hero-kicker"><p class="eyebrow"><span class="status-dot" aria-hidden="true"></span>A terminal habitat for Omarchy Quattro</p><a class="release-label" href="https://github.com/DailenG/Omarchasaurus#readme">0.2.0 / Development preview <span aria-hidden="true">↗</span></a></div>
+      <div class="hero-grid">
+        <h1 id="hero-title">A little prehistory.<br>A lot of <em>character.</em></h1>
+        <div class="hero-intro"><p>A dinosaur valley, drawn entirely with ordinary characters. A quiet corner of deep time, right inside your terminal.</p><div class="hero-actions"><a class="button button-primary" href="#install">Bring the valley home <span aria-hidden="true">↓</span></a><a class="text-link" href="https://github.com/DailenG/Omarchasaurus">Explore the source <span aria-hidden="true">↗</span></a></div></div>
+      </div>
+      <figure class="valley-frame" id="valley">
+        <div class="frame-toolbar"><span class="eyebrow"><span class="frame-cross" aria-hidden="true">+</span> Field observation / 001</span><div id="palette-controls" class="palette-controls" role="group" aria-label="Artwork palette" hidden><button type="button" data-palette="morning" aria-pressed="true" aria-controls="valley-image">Morning</button><button type="button" data-palette="dusk" aria-pressed="false" aria-controls="valley-image">Dusk</button></div><span class="frame-format">ASCII / TRUECOLOR</span></div>
+        <div class="valley-image-wrap"><img id="valley-image" src="./assets/valley-morning.webp" width="1536" height="864" fetchpriority="high" alt="Morning palette production capture of the ASCII dinosaur valley, with character-drawn dinosaurs, mountains, trees, clouds and a lake."></div>
+        <figcaption><span><span class="caption-marker" aria-hidden="true">↳</span> Actual production-canvas capture. Not a browser game.</span><span id="palette-caption" aria-live="polite" aria-atomic="true">Morning palette / static artwork</span></figcaption>
+      </figure>
+      <div class="hero-footnote"><span>Real terminal. Original strokes.</span><span>No image protocol. No separate GPU scene.</span><span class="hero-footnote-end">Made to be stumbled upon.</span></div>
+    </section>
+
+    <section class="story section-space wrap" aria-labelledby="story-title">
+      <div class="section-label"><span class="eyebrow">01 / The idea</span><span class="section-rule" aria-hidden="true"></span></div>
+      <div class="story-grid"><h2 id="story-title">Not another window.<br><em>A change of scenery.</em></h2><div class="story-copy"><p>Mountains on the horizon. A long neck in the treetops. Something small stirring by the lake. Omarchasaurus turns a character grid into a place worth pausing for.</p><p>Open <strong>Enter Immersion</strong> from the tray to explore on your focused output. Or choose <strong>Start All Outputs</strong> for a screensaver-style valley on each display. Both are started manually.</p><a class="text-link" href="https://github.com/DailenG/Omarchasaurus#readme">Read the project notes <span aria-hidden="true">↗</span></a></div></div>
+      <div class="observation-list">
+        <article><span class="observation-number" aria-hidden="true">I.</span><h3>A little curiosity<br>goes a long way.</h3><p>In immersion, click a dinosaur for a head, jaw or tail reaction. Click open sky for a meteor; lake water for a leap and splash. One meteor and one lake leap can coexist, with a free animal slot needed for the leap.</p></article>
+        <article><span class="observation-number" aria-hidden="true">II.</span><h3>Your kind<br>of quiet.</h3><p>Morning or Dusk changes the palette, not the world’s behavior. Set reduced motion independently. Tune scenery, optional animals and crowding without tying them to a color scheme.</p></article>
+        <article><span class="observation-number" aria-hidden="true">III.</span><h3>A new arrangement.<br>On your terms.</h3><p>Randomize Valley stages a fresh mix of scenery and optional residents. Review it, then Apply. It never silently rerolls your scene or saves those choices automatically.</p></article>
+      </div>
+    </section>
+
+    <section class="field-guide section-space wrap" id="field-guide" aria-labelledby="guide-title">
+      <div class="section-label"><span class="eyebrow">02 / Field guide</span><span class="section-rule" aria-hidden="true"></span><span class="eyebrow label-end">Nine kinds of company</span></div>
+      <div class="guide-heading"><h2 id="guide-title">Meet the <em>locals.</em></h2><p>A prehistoric ensemble, not a scientific ecosystem simulation. Each silhouette is drawn in original ASCII strokes.</p></div>
+      <div class="roster">
+        <article class="resident"><div class="resident-top"><span class="eyebrow">Specimen 01</span><span class="resident-badge">Always at home</span></div><h3>Brachiosaurus<span aria-hidden="true">.</span></h3><p>The valley’s familiar long-necked anchor, browsing beside the tall tree. Other animals come and go; this one stays.</p><div class="resident-bottom"><span class="eyebrow">The permanent resident</span><span aria-hidden="true">↗</span></div></article>
+        <ol class="species-list" start="2" aria-label="Optional valley animals">
+          <li><span class="species-name">Tyrannosaurus rex</span><span class="species-note">The unmistakable silhouette</span></li>
+          <li><span class="species-name">Triceratops</span><span class="species-note">Three-horned company</span></li>
+          <li><span class="species-name">Stegosaurus</span><span class="species-note">A skyline of plates</span></li>
+          <li><span class="species-name">Ankylosaurus</span><span class="species-note">Low-slung and armored</span></li>
+          <li><span class="species-name">Parasaurolophus</span><span class="species-note">The crested family</span></li>
+          <li><span class="species-name">Diplodocus</span><span class="species-note">Lake resident or visitor</span></li>
+          <li><span class="species-name">Plesiosaurus</span><span class="species-note">Marine reptile, not a dinosaur</span></li>
+          <li><span class="species-name">Pteranodon</span><span class="species-note">Pterosaur, not a dinosaur</span></li>
+        </ol>
+      </div>
+      <p class="guide-note"><span aria-hidden="true">↳</span> Room to roam, not a cloning target. The animal ceiling bounds arrivals; a full valley skips new arrivals rather than evicting visible animals.</p>
+    </section>
+
+    <section class="events-section section-space" aria-labelledby="events-title">
+      <div class="events-panel wrap">
+        <div class="events-intro"><p class="eyebrow">03 / Passing moments</p><h2 id="events-title">The best bits<br>aren’t <em>on demand.</em></h2><p>A hatchling at the nest. Rain giving way to a rainbow. A flock crossing the sky. Rare events unfold over active, unpaused session time—not while you’re away.</p><a class="text-link" href="https://github.com/DailenG/Omarchasaurus#try-an-event-without-waiting">Impatient? Try Test Event <span aria-hidden="true">↗</span></a></div>
+        <div class="event-notes"><div class="event-note"><span class="event-glyph" aria-hidden="true">01</span><div><h3>Small beginnings</h3><p>A Brachiosaurus hatching, when the nest and a free animal seat are available.</p></div></div><div class="event-note"><span class="event-glyph" aria-hidden="true">02</span><div><h3>A change in the air</h3><p>A gentle shower, a rainbow, a passing Pteranodon flock, or soft volcano puffs.</p></div></div><div class="event-note"><span class="event-glyph" aria-hidden="true">03</span><div><h3>A familiar visitor</h3><p>Let Diplodocus stay by the lake, or leave room for its scheduled visits.</p></div></div><p class="events-aside">Test Event previews a selected encounter without changing your saved preferences. Animal arrivals still respect available space.</p></div>
+      </div>
+    </section>
+
+    <section class="install section-space wrap" id="install" aria-labelledby="install-title">
+      <div class="section-label"><span class="eyebrow">04 / Bring it home</span><span class="section-rule" aria-hidden="true"></span></div>
+      <div class="install-grid"><div class="install-intro"><h2 id="install-title">A valley.<br><em>One command away.</em></h2><p>For Omarchy Quattro, its Quickshell-based shell, and Hyprland. You’ll also need Python 3.11+, Ghostty or Kitty, and a UTF-8 truecolor terminal with a monospace font.</p><p class="install-requirements">Dependencies must already be installed. No runtime package installer, account, API key or elevated helper.</p></div>
+        <div class="install-steps"><div class="install-step"><span class="step-number">01</span><div><h3>Add the plugin</h3><div class="command-box"><div class="command-top"><span class="eyebrow">Your terminal</span><button class="copy-button" id="copy-install" type="button" aria-describedby="copy-status" hidden>Copy command <span aria-hidden="true">↗</span></button></div><pre tabindex="0" aria-label="Installation command"><code id="install-command">omarchy plugin add https://github.com/DailenG/Omarchasaurus --enable</code></pre></div><p id="copy-status" class="copy-status" role="status" aria-live="polite" aria-atomic="true">Select the command to copy it manually.</p></div></div><div class="install-step"><span class="step-number">02</span><div><h3>Find your new tray neighbor</h3><p>Open the Omarchasaurus tray menu, then choose <strong>Enter Immersion</strong>. Choose <strong>Start All Outputs</strong> for screensaver-style sessions; <strong>Surface</strong> stops only its owned sessions.</p></div></div><a class="text-link install-docs" href="https://github.com/DailenG/Omarchasaurus#install">Full installation, updates &amp; removal <span aria-hidden="true">↗</span></a></div></div>
+      <aside class="preview-notice"><span class="preview-notice-label eyebrow">A note from the field</span><p><strong>0.2.0 is a development preview.</strong> Manual immersion and Start are available. Automatic idle activation and sound are not implemented. No marketplace approval or verification is claimed. Read the <a href="https://github.com/DailenG/Omarchasaurus#files-privacy-and-security-boundaries">security boundaries</a> before installing community code.</p></aside>
+    </section>
+
+    <section class="faq section-space wrap" aria-labelledby="faq-title"><div class="faq-intro"><p class="eyebrow">05 / Before you wander</p><h2 id="faq-title">A few<br><em>field notes.</em></h2><a class="text-link" href="https://github.com/DailenG/Omarchasaurus#readme">The complete README <span aria-hidden="true">↗</span></a></div><div class="faq-list">
+      <details><summary>Is this a game I can play in my browser?<span class="faq-indicator" aria-hidden="true"></span></summary><p>No. This website shows static captures from the actual production canvas. The interactive valley runs in a real terminal as an Omarchy Quattro plugin. The Morning / Dusk viewer here demonstrates the two palettes, not live animation.</p></details>
+      <details><summary>Will it run on my desktop?<span class="faq-indicator" aria-hidden="true"></span></summary><p>The supported setup is Omarchy Quattro with its Quickshell shell and Hyprland, Python 3.11 or newer, and Ghostty or Kitty. It is not presented as a general Windows, macOS or other Linux desktop app.</p></details>
+      <details><summary>Is it an automatic screensaver?<span class="faq-indicator" aria-hidden="true"></span></summary><p>Not yet. In this development preview, you manually choose Enter Immersion or Start All Outputs from the tray. Automatic idle activation and sound are off and not implemented. Ordinary input dismisses screensaver-style Start sessions; immersion is the interactive mode.</p></details>
+      <details><summary>Does it connect to anything?<span class="faq-indicator" aria-hidden="true"></span></summary><p>The plugin runtime makes no HTTP/TCP requests. Installation and updates through Omarchy contact GitHub. Runtime integration is local: Hyprland, Omarchy/Quickshell IPC and same-user Unix sockets. This website uses no analytics, cookies or browser storage. Community plugins are unsandboxed user code; this is not a security certification. <a href="https://github.com/DailenG/Omarchasaurus#files-privacy-and-security-boundaries">Read the full security notes.</a></p></details>
+      <details><summary>Can I make it quieter?<span class="faq-indicator" aria-hidden="true"></span></summary><p>Yes. Reduced motion is an independent setting. Choose optional animals, adjust scenery density and set an animal ceiling. Morning and Dusk only change colors. Randomize stages choices for review, rather than saving automatically.</p></details>
+      <details><summary>How do I update or remove it?<span class="faq-indicator" aria-hidden="true"></span></summary><p>Surface owned sessions and apply or discard staged settings before updating. Use Omarchy’s normal plugin updater; the README includes the one-time 0.1.0 migration and source-checkout caveats. Removal keeps your saved settings intentionally. Follow the <a href="https://github.com/DailenG/Omarchasaurus#updating--020">update instructions</a> or <a href="https://github.com/DailenG/Omarchasaurus#removing">removal instructions</a> for the complete steps.</p></details>
+    </div></section>
+  </main>
+
+  <footer class="site-footer wrap"><div class="footer-top"><a class="wordmark" href="#" aria-label="Omarchasaurus back to top"><img src="./assets/favicon.svg" alt="" width="30" height="30">Omarchasaurus<span class="wordmark-period">.</span></a><p>Ordinary characters.<br>Extraordinary company.</p><a class="footer-top-link text-link" href="#main">Back to the surface <span aria-hidden="true">↑</span></a></div><div class="footer-bottom"><p>Original strokes. Open source. <a href="https://github.com/DailenG/Omarchasaurus/blob/main/LICENSE">MIT licensed.</a></p><nav aria-label="Project links"><a href="https://github.com/DailenG/Omarchasaurus">GitHub <span aria-hidden="true">↗</span></a><a href="https://github.com/DailenG/Omarchasaurus#readme">README <span aria-hidden="true">↗</span></a><a href="https://github.com/DailenG/Omarchasaurus/issues">Issues <span aria-hidden="true">↗</span></a></nav><span class="footer-edition">Field edition / 0.2.0</span></div></footer>
+</body>
+</html>
