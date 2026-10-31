@@ -23,8 +23,8 @@
   <meta name="twitter:image" content="https://daileng.github.io/Omarchasaurus/assets/social.png">
   <meta name="twitter:image:alt" content="Omarchasaurus, an ASCII dinosaur valley for Omarchy Quattro">
   <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
-  <link rel="stylesheet" href="./styles.css">
-  <script src="./main.js" defer></script>
+  <link rel="stylesheet" href="./styles.css?v=inline-players">
+  <script src="./main.js?v=inline-players" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -84,16 +84,16 @@
       </nav>
       <div class="guide-key" id="pronunciation-help">
         <p><strong>Say it in small steps.</strong> Hyphens break names into syllables; CAPITAL letters show the stronger beats. Accents and accepted pronunciations vary. These are friendly English readings, not the only right way.</p>
-        <p>The MP3 links say the animal’s <em>name</em> in a generated human voice, not an animal call. There are no real recordings of these extinct animals. Nothing plays automatically. With JavaScript, use Hear name, then Stop audio to stop it. <a href="https://github.com/DailenG/Omarchasaurus/blob/main/site/assets/pronunciation/ATTRIBUTION.md">Read how the name audio was made.</a></p>
+        <p>The players say the animal’s <em>name</em> in a generated human voice, not an animal call. There are no real recordings of these extinct animals. Nothing plays automatically. The players work without JavaScript, too. <a href="https://github.com/DailenG/Omarchasaurus/blob/main/site/assets/pronunciation/ATTRIBUTION.md">Read how the name audio was made.</a></p>
       </div>
-      <p id="pronunciation-status" class="pronunciation-status" role="status" aria-live="polite" aria-atomic="true">Read the syllables, or open a name’s MP3 to listen.</p>
+      <p class="pronunciation-instructions">Press Play beneath an animal’s name to listen. Pause or replay it right here—you will stay on this page.</p>
       <div class="guide-cards">
         <article class="animal-card" id="brachiosaurus" aria-labelledby="brachiosaurus-title">
           <div class="animal-card-top"><span class="eyebrow">01 / Treetop browser</span><span class="animal-kind">Dinosaur</span></div>
           <h3 id="brachiosaurus-title">Brachiosaurus</h3>
           <img class="animal-portrait" src="./assets/field-guide/brachiosaurus.png" width="640" height="360" loading="lazy" alt="Brachiosaurus drawn with terminal characters">
           <p class="phonetic"><span class="phonetic-label">Say it</span> BRAK-ee-oh-sore-us</p>
-          <div class="pronunciation-actions"><button type="button" class="pronounce-button" data-pronounce="brachiosaurus" data-pronounce-name="Brachiosaurus" aria-pressed="false" aria-describedby="pronunciation-help" hidden>Hear name</button><a class="pronunciation-file" href="./assets/pronunciation/brachiosaurus.mp3">Name MP3<span class="sr-only">: Brachiosaurus</span></a></div>
+          <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/brachiosaurus.mp3" aria-label="Pronunciation of Brachiosaurus" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
           <dl class="animal-stats">
             <div><dt>When</dt><dd>Late Jurassic, about 152–145 million years ago</dd></div>
             <div><dt>Where</dt><dd>North America (fossils in the USA)</dd></div>
@@ -111,7 +111,7 @@
           <h3 id="tyrannosaurus-rex-title">Tyrannosaurus rex</h3>
           <img class="animal-portrait" src="./assets/field-guide/tyrannosaurus-rex.png" width="640" height="360" loading="lazy" alt="Tyrannosaurus rex drawn with terminal characters">
           <p class="phonetic"><span class="phonetic-label">Say it</span> tie-RAN-oh-sore-us REKS</p>
-          <div class="pronunciation-actions"><button type="button" class="pronounce-button" data-pronounce="tyrannosaurus-rex" data-pronounce-name="Tyrannosaurus rex" aria-pressed="false" aria-describedby="pronunciation-help" hidden>Hear name</button><a class="pronunciation-file" href="./assets/pronunciation/tyrannosaurus-rex.mp3">Name MP3<span class="sr-only">: Tyrannosaurus rex</span></a></div>
+          <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/tyrannosaurus-rex.mp3" aria-label="Pronunciation of Tyrannosaurus rex" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
           <dl class="animal-stats">
             <div><dt>When</dt><dd>Late Cretaceous, about 68–66 million years ago</dd></div>
             <div><dt>Where</dt><dd>North America (Canada and the USA)</dd></div>
@@ -129,7 +129,7 @@
           <h3 id="triceratops-title">Triceratops</h3>
           <img class="animal-portrait" src="./assets/field-guide/triceratops.png" width="640" height="360" loading="lazy" alt="Triceratops drawn with terminal characters">
           <p class="phonetic"><span class="phonetic-label">Say it</span> try-SERR-uh-tops</p>
-          <div class="pronunciation-actions"><button type="button" class="pronounce-button" data-pronounce="triceratops" data-pronounce-name="Triceratops" aria-pressed="false" aria-describedby="pronunciation-help" hidden>Hear name</button><a class="pronunciation-file" href="./assets/pronunciation/triceratops.mp3">Name MP3<span class="sr-only">: Triceratops</span></a></div>
+          <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/triceratops.mp3" aria-label="Pronunciation of Triceratops" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
           <dl class="animal-stats">
             <div><dt>When</dt><dd>Late Cretaceous, about 68–66 million years ago</dd></div>
             <div><dt>Where</dt><dd>North America</dd></div>
@@ -147,7 +147,7 @@
           <h3 id="stegosaurus-title">Stegosaurus</h3>
           <img class="animal-portrait" src="./assets/field-guide/stegosaurus.png" width="640" height="360" loading="lazy" alt="Stegosaurus drawn with terminal characters">
           <p class="phonetic"><span class="phonetic-label">Say it</span> STEG-oh-SORE-us</p>
-          <div class="pronunciation-actions"><button type="button" class="pronounce-button" data-pronounce="stegosaurus" data-pronounce-name="Stegosaurus" aria-pressed="false" aria-describedby="pronunciation-help" hidden>Hear name</button><a class="pronunciation-file" href="./assets/pronunciation/stegosaurus.mp3">Name MP3<span class="sr-only">: Stegosaurus</span></a></div>
+          <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/stegosaurus.mp3" aria-label="Pronunciation of Stegosaurus" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
           <dl class="animal-stats">
             <div><dt>When</dt><dd>Late Jurassic, about 152–145 million years ago</dd></div>
             <div><dt>Where</dt><dd>North America (fossils in the USA)</dd></div>
@@ -165,7 +165,7 @@
           <h3 id="ankylosaurus-title">Ankylosaurus</h3>
           <img class="animal-portrait" src="./assets/field-guide/ankylosaurus.png" width="640" height="360" loading="lazy" alt="Ankylosaurus drawn with terminal characters">
           <p class="phonetic"><span class="phonetic-label">Say it</span> an-KYE-low-sore-us</p>
-          <div class="pronunciation-actions"><button type="button" class="pronounce-button" data-pronounce="ankylosaurus" data-pronounce-name="Ankylosaurus" aria-pressed="false" aria-describedby="pronunciation-help" hidden>Hear name</button><a class="pronunciation-file" href="./assets/pronunciation/ankylosaurus.mp3">Name MP3<span class="sr-only">: Ankylosaurus</span></a></div>
+          <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/ankylosaurus.mp3" aria-label="Pronunciation of Ankylosaurus" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
           <dl class="animal-stats">
             <div><dt>When</dt><dd>Late Cretaceous, about 68–66 million years ago</dd></div>
             <div><dt>Where</dt><dd>North America (Canada and the USA)</dd></div>
@@ -183,7 +183,7 @@
           <h3 id="parasaurolophus-title">Parasaurolophus</h3>
           <img class="animal-portrait" src="./assets/field-guide/parasaurolophus.png" width="640" height="360" loading="lazy" alt="Parasaurolophus drawn with terminal characters">
           <p class="phonetic"><span class="phonetic-label">Say it</span> pa-ra-saw-ROL-off-us</p>
-          <div class="pronunciation-actions"><button type="button" class="pronounce-button" data-pronounce="parasaurolophus" data-pronounce-name="Parasaurolophus" aria-pressed="false" aria-describedby="pronunciation-help" hidden>Hear name</button><a class="pronunciation-file" href="./assets/pronunciation/parasaurolophus.mp3">Name MP3<span class="sr-only">: Parasaurolophus</span></a></div>
+          <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/parasaurolophus.mp3" aria-label="Pronunciation of Parasaurolophus" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
           <dl class="animal-stats">
             <div><dt>When</dt><dd>Late Cretaceous, about 77–73 million years ago</dd></div>
             <div><dt>Where</dt><dd>North America (Canada and the USA)</dd></div>
@@ -201,7 +201,7 @@
           <h3 id="diplodocus-title">Diplodocus</h3>
           <img class="animal-portrait" src="./assets/field-guide/diplodocus.png" width="640" height="360" loading="lazy" alt="Diplodocus drawn with terminal characters">
           <p class="phonetic"><span class="phonetic-label">Say it</span> DIP-low-DOCK-us</p>
-          <div class="pronunciation-actions"><button type="button" class="pronounce-button" data-pronounce="diplodocus" data-pronounce-name="Diplodocus" aria-pressed="false" aria-describedby="pronunciation-help" hidden>Hear name</button><a class="pronunciation-file" href="./assets/pronunciation/diplodocus.mp3">Name MP3<span class="sr-only">: Diplodocus</span></a></div>
+          <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/diplodocus.mp3" aria-label="Pronunciation of Diplodocus" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
           <dl class="animal-stats">
             <div><dt>When</dt><dd>Late Jurassic, about 152–145 million years ago</dd></div>
             <div><dt>Where</dt><dd>North America (fossils in the western USA)</dd></div>
@@ -219,7 +219,7 @@
           <h3 id="plesiosaurus-title">Plesiosaurus</h3>
           <img class="animal-portrait" src="./assets/field-guide/plesiosaurus.png" width="640" height="360" loading="lazy" alt="Plesiosaurus drawn with terminal characters">
           <p class="phonetic"><span class="phonetic-label">Say it</span> PLEE-see-uh-SORE-us</p>
-          <div class="pronunciation-actions"><button type="button" class="pronounce-button" data-pronounce="plesiosaurus" data-pronounce-name="Plesiosaurus" aria-pressed="false" aria-describedby="pronunciation-help" hidden>Hear name</button><a class="pronunciation-file" href="./assets/pronunciation/plesiosaurus.mp3">Name MP3<span class="sr-only">: Plesiosaurus</span></a></div>
+          <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/plesiosaurus.mp3" aria-label="Pronunciation of Plesiosaurus" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
           <dl class="animal-stats">
             <div><dt>When</dt><dd>Early Jurassic, about 200 million years ago</dd></div>
             <div><dt>Where</dt><dd>Ancient seas around what is now England</dd></div>
@@ -237,7 +237,7 @@
           <h3 id="pteranodon-title">Pteranodon</h3>
           <img class="animal-portrait" src="./assets/field-guide/pteranodon.png" width="640" height="360" loading="lazy" alt="Pteranodon drawn with terminal characters">
           <p class="phonetic"><span class="phonetic-label">Say it</span> ter-AN-oh-don</p>
-          <div class="pronunciation-actions"><button type="button" class="pronounce-button" data-pronounce="pteranodon" data-pronounce-name="Pteranodon" aria-pressed="false" aria-describedby="pronunciation-help" hidden>Hear name</button><a class="pronunciation-file" href="./assets/pronunciation/pteranodon.mp3">Name MP3<span class="sr-only">: Pteranodon</span></a></div>
+          <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/pteranodon.mp3" aria-label="Pronunciation of Pteranodon" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
           <dl class="animal-stats">
             <div><dt>When</dt><dd>Late Cretaceous, around 85 million years ago</dd></div>
             <div><dt>Where</dt><dd>North America, above an inland sea (including today’s Kansas)</dd></div>
@@ -279,7 +279,7 @@
 
     <section class="faq section-space wrap" aria-labelledby="faq-title"><div class="faq-intro"><p class="eyebrow">05 / Before you wander</p><h2 id="faq-title">A few<br><em>field notes.</em></h2><a class="text-link" href="https://github.com/DailenG/Omarchasaurus#readme">The complete README <span aria-hidden="true">↗</span></a></div><div class="faq-list">
       <details><summary>Is this a game I can play in my browser?<span class="faq-indicator" aria-hidden="true"></span></summary><p>No. This website shows static captures from the actual production canvas. The interactive valley runs in a real terminal as an Omarchy Quattro plugin. The Morning / Dusk viewer here demonstrates the two palettes, not live animation.</p></details>
-      <details><summary>Can I learn the names without installing anything?<span class="faq-indicator" aria-hidden="true"></span></summary><p>Absolutely. The <a href="#field-guide">nine-animal field guide</a> has facts, syllable spellings and museum links that work without JavaScript. Open a Name MP3 link to hear a spoken name, or enable JavaScript for the Hear name / Stop audio buttons. Audio starts only when you choose it. It is generated name speech, not a recording of an animal call, and does not turn on sound in the silent terminal plugin. See the <a href="https://github.com/DailenG/Omarchasaurus/blob/main/site/assets/pronunciation/ATTRIBUTION.md">audio sources and creation notes</a>.</p></details>
+      <details><summary>Can I learn the names without installing anything?<span class="faq-indicator" aria-hidden="true"></span></summary><p>Absolutely. The <a href="#field-guide">nine-animal field guide</a> has facts, syllable spellings and museum links. Use the embedded player beneath each name to play, pause or replay its pronunciation without leaving the guide—even without JavaScript. Audio starts only when you choose it. It is generated name speech, not a recording of an animal call, and does not turn on sound in the silent terminal plugin. See the <a href="https://github.com/DailenG/Omarchasaurus/blob/main/site/assets/pronunciation/ATTRIBUTION.md">audio sources and creation notes</a>.</p></details>
       <details><summary>How do the animal name labels work?<span class="faq-indicator" aria-hidden="true"></span></summary><p>In the terminal’s Enter Immersion mode, hover your mouse over an animal to reveal its name without clicking. Move away to clear the label. These labels belong to interactive immersion, not screensaver-style Start sessions or this website’s static image. If you use a keyboard or touch, browse the <a href="#field-guide">field guide</a> instead.</p></details>
       <details><summary>Will it run on my desktop?<span class="faq-indicator" aria-hidden="true"></span></summary><p>The supported setup is Omarchy Quattro with its Quickshell shell and Hyprland, Python 3.11 or newer, and Ghostty or Kitty. It is not presented as a general Windows, macOS or other Linux desktop app.</p></details>
       <details><summary>Is it an automatic screensaver?<span class="faq-indicator" aria-hidden="true"></span></summary><p>Not yet. In this development preview, you manually choose Enter Immersion or Start All Outputs from the tray. Automatic idle activation and plugin sound are off and not implemented. Ordinary input dismisses screensaver-style Start sessions; immersion is the interactive mode.</p></details>

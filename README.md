@@ -207,6 +207,8 @@ This Python-only source change is picked up by a **new** immersion/screensaver s
 
 Hover names are available only in interactive immersion. They follow the animal pixels under the pointer, work while paused, and do not change click targets or saved preferences. Ordinary screensaver-style Start still dismisses on input rather than showing learning labels. The native controller remains version0.3.0; Python-only artwork and hover changes on current `main` do not require a QML cache migration.
 
+The website now embeds a visible audio player on every animal card. Play, pause and replay stay inside the field guide, including without JavaScript; the former raw MP3 navigation links have been removed.
+
 ### 0.3.0 interaction and artwork changes
 
 Egg/nest clicks now trigger a repeatable hatchling encounter with a timed offscreen departure, without changing automatic hatch deadlines or taking an occupied animal seat. The hatchling stays in the foreground rather than disappearing behind its parent.
@@ -267,7 +269,7 @@ The public repository excludes historical desktop captures, development-agent in
 
 The website is plain HTML, CSS and JavaScript in `site/`, with no build step, external fonts, analytics or browser storage. Its artwork comes from the production character canvas; the palette viewer is not a browser port of the simulation.
 
-Name clips are self-hosted and play only when requested; one clip plays at a time. Visible syllable guides and direct audio-file links remain available without JavaScript. These are readings of animal names, **not dinosaur calls**; the terminal plugin itself remains silent. Browser playback fetches the selected clip from this GitHub Pages site, not a third-party speech API. Audio provenance and licenses are listed in [pronunciation credits](site/assets/pronunciation/ATTRIBUTION.md). Linked museums are independent websites with their own accessibility and privacy practices.
+Name clips are self-hosted and play only when requested. Each animal card has a visible embedded player: play, pause and replay stay on the guide, even without JavaScript. With JavaScript enabled, starting another name pauses the previous clip. Written syllable guides remain alongside the players. These are readings of animal names, **not dinosaur calls**; the terminal plugin itself remains silent. Browser playback fetches the selected clip from this GitHub Pages site, not a third-party speech API. Audio provenance and licenses are listed in [pronunciation credits](site/assets/pronunciation/ATTRIBUTION.md). Linked museums are independent websites with their own accessibility and privacy practices.
 
 Preview locally:
 

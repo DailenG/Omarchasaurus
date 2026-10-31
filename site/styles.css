@@ -107,7 +107,7 @@ h1 { font-size: clamp(3.6rem, 6.7vw, 6.75rem); line-height: .99; }
 .guide-jump a:hover { background: var(--ink-raised); border-color: var(--green); }
 .guide-key { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; font-size: 14px; color: var(--muted); }
 .guide-key strong { color: var(--bone); font-weight: 600; }
-.pronunciation-status { min-height: 48px; margin-block: 20px 18px; padding: 12px 16px; border-left: 2px solid var(--green); background: var(--ink-raised); font-size: 13px; color: var(--green); }
+.pronunciation-instructions { min-height: 48px; margin-block: 20px 18px; padding: 12px 16px; border-left: 2px solid var(--green); background: var(--ink-raised); font-size: 13px; color: var(--green); }
 .guide-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
 .animal-card { display: flex; flex-direction: column; min-width: 0; padding: 26px; background: var(--ink-raised); border: 1px solid var(--line); scroll-margin-top: 28px; }
 .animal-card:target { border-color: var(--amber); }
@@ -119,10 +119,7 @@ h1 { font-size: clamp(3.6rem, 6.7vw, 6.75rem); line-height: .99; }
 .animal-portrait { width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: contain; filter: brightness(1.85); margin-top: 20px; background: var(--ink); border: 1px solid var(--line); }
 .phonetic { color: var(--bone); font-size: 15px; margin-top: 14px; }
 .phonetic-label { display: block; color: var(--muted); font: 9px/1.8 var(--mono); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 3px; }
-.pronunciation-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 18px; margin-block: 12px 22px; }
-.pronounce-button { min-height: 44px; padding: 9px 14px; border: 1px solid var(--green); background: transparent; color: var(--green); font-size: 13px; font-weight: 600; }
-.pronounce-button:hover, .pronounce-button[aria-pressed="true"] { background: var(--green); color: var(--ink); }
-.pronunciation-file { display: inline-flex; align-items: center; min-height: 44px; font-size: 13px; color: var(--muted); }
+.pronunciation-player { display: block; width: 100%; min-width: 0; height: 44px; margin-block: 12px 22px; color-scheme: dark; }
 .animal-stats { margin: 0; padding-block: 16px; border-block: 1px solid var(--line); font-size: 13px; }
 .animal-stats > div { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 10px; }
 .animal-stats > div + div { margin-top: 10px; }
