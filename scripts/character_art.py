@@ -486,9 +486,20 @@ def _diplodocus_pose(pose, motion):
     # A small, mostly level skull articulates independently at the neck tip.
     head = _pivot((0, 0), .40 * drink + look - .025 * (1 - drink),
                   origin=neck[-1])
-    tail = _pivot((-9, -11),
-                  math.sin(pose["phase"] * .43) * .025 * motion + .10 * response,
-                  parent=body)
+    # A firm, slightly raised root flows into a flexible, airborne whip.
+    # Absolute link angles preserve length without concentrating the bend
+    # at a single hinge. Idle swishes have smooth starts/ends and long rests.
+    tail = [body(-9, -11)]
+    for index, (bend, idle_amplitude) in enumerate(
+            ((.18, .02), (.10, .045), (-.04, .09), (-.24, .16), (-.44, .26))):
+        age = (pose["tail_time"] - index * .35) % 20
+        idle = (math.sin(math.pi * age / 8)**2 * math.sin(math.tau * age / 8)
+                if age < 8 else 0)
+        gait = math.sin(pose["phase"] * .43 - index * .4) * pose["stride"]
+        angle = (bend + motion * (idle_amplitude * idle + .008 * (index + 1) * gait)
+                 + .04 * (index + 1) * response)
+        x, y = tail[-1]
+        tail.append((x - 6.2 * math.cos(angle), y - 6.2 * math.sin(angle)))
     legs = []
     for far in (True, False):
         for index, hip in enumerate((-7, 5)):
@@ -508,28 +519,24 @@ def _diplodocus_pose(pose, motion):
         "neck": neck,
         "head": head,
         "tail": tail,
-        "whip": _pivot((-25, -12),
-                       math.sin(pose["phase"] * .43 - .8) * .045 * motion
-                       + .08 * response, parent=tail),
         "legs": legs,
     }
 
 
-def _diplodocus_neck_rails(joints, head):
+def _tapered_rails(joints, widths):
     normals = []
     for a, b in zip(joints, joints[1:]):
         dx, dy = b[0] - a[0], b[1] - a[1]
         length = math.hypot(dx, dy)
         normals.append((-dy / length, dx / length))
     back, front = [], []
-    for index, (joint, width) in enumerate(zip(joints, (1.5, 1.3, 1.05, .85, .65, .5))):
+    for index, (joint, width) in enumerate(zip(joints, widths)):
         before, after = normals[max(0, index - 1)], normals[min(len(normals) - 1, index)]
         nx, ny = before[0] + after[0], before[1] + after[1]
         length = math.hypot(nx, ny)
         nx, ny = nx / length, ny / length
         back.append((joint[0] - width * nx, joint[1] - width * ny))
         front.append((joint[0] + width * nx, joint[1] + width * ny))
-    back[-1], front[-1] = head(0, -.55), head(0, .55)
     return back, front
 
 
@@ -543,18 +550,12 @@ def _diplodocus(canvas, pose, motion, palette):
         color, shade, light = (palette["diplodocus" + suffix]
                                for suffix in ("", "_shade", "_light"))
         joints = _diplodocus_pose(pose, motion)
-        body, head, tail, whip = (joints[key] for key in ("body", "head", "tail", "whip"))
-        # A thick tail root tapers into a thin, separately hinged whip.
+        body, head = joints["body"], joints["head"]
+        back, front = _tapered_rails(joints["tail"], (2.2, 1.6, .95, .48, .18, 0))
         canvas.polygon(_outline((
-            (tail(-8, -13), tail(-13, -14), tail(-20, -13.3), tail(-25, -12.5)),
-            (tail(-25, -12.5), tail(-26, -12.4), tail(-26, -11.7), tail(-25, -11.6)),
-            (tail(-25, -11.6), tail(-19, -10.6), tail(-13, -9.2), tail(-8, -9)),
-            (tail(-8, -9), tail(-7, -10), tail(-7, -12), tail(-8, -13)),
-        )), color, owner=owner, fill=" ")
-        canvas.polygon(_outline((
-            (whip(-25, -12.5), whip(-30, -12.1), whip(-35, -10.4), whip(-40, -10.6)),
-            (whip(-40, -10.6), whip(-35, -9.9), whip(-29, -11.2), whip(-25, -11.6)),
-            (whip(-25, -11.6), whip(-24.6, -11.8), whip(-24.6, -12.3), whip(-25, -12.5)),
+            *_catmull_beziers(back),
+            *_catmull_beziers(front[::-1]),
+            (front[0], front[0], back[0], back[0]),
         )), color, owner=owner, fill=" ")
         # Four columnar legs share the same hip height and grounded foot plane.
         # Each has a small independent swing, not a scaled/bouncing torso.
@@ -572,7 +573,8 @@ def _diplodocus(canvas, pose, motion, palette):
                        body(4.5, -8)), shade, owner=owner)
         # Tapered rails follow the articulated vertebral chain. Neither the
         # neck length nor torso changes as the muzzle lowers to the water.
-        back, front = _diplodocus_neck_rails(joints["neck"], head)
+        back, front = _tapered_rails(joints["neck"], (1.5, 1.3, 1.05, .85, .65, .5))
+        back[-1], front[-1] = head(0, -.55), head(0, .55)
         canvas.polygon(_outline((
             *_catmull_beziers(back),
             (back[-1], back[-1], front[-1], front[-1]),
@@ -757,16 +759,37 @@ def _parasaurolophus_pose(pose, motion):
     # Drinking stays functional in reduced motion; clicks smoothly lift the
     # head out of that posture instead of being ignored until drinking ends.
     drink = pose["drink"] * (1 - response)
-    angle = drink * (.65 + .3 * scale)
+    angle = drink * (.57 + .23 * scale)
     angle += (1 - drink) * (
-        math.sin(pose["phase"] * .35) * .015 * motion - .42 * response)
+        math.sin(pose["phase"] * .35) * .015 * motion - .32 * response)
+    legs = []
+    for far in (True, False):
+        for fore, center in ((False, -3), (True, 3.5)):
+            phase = pose["phase"] + (math.pi if far != fore else 0)
+            step = math.sin(phase) * .8 * pose["stride"] * motion
+            lift = max(0, math.cos(phase)) * .45 * pose["stride"] * motion
+            hip = center + (1.2 if far else 0)
+            foot = hip + step + (1 if fore else 0)
+            if fore:
+                points = ((hip-.55, -6.4), (hip+.65, -6.2),
+                          (hip+.9+step*.4, -3), (foot+.45, -.6-lift),
+                          (foot+1, -lift), (foot-.7, -lift),
+                          (hip-.1+step*.4, -3))
+            else:
+                points = ((hip-1.2, -8.2), (hip+1.4, -8),
+                          (hip+1.8+step*.3, -4.5), (foot+.3, -1-lift),
+                          (foot+1.8, -.4-lift), (foot+1.8, -lift),
+                          (foot-.8, -lift), (hip-.8+step*.3, -3.6))
+            legs.append(dict(far=far, fore=fore, foot=body(foot, -lift),
+                             points=tuple(body(x, y) for x, y in points)))
     return {
         "body": body,
-        "head": _pivot((3, -7), angle, parent=body),
-        "tail": _pivot((-5, -7.5),
-                       math.sin(pose["phase"] * .4) * .035 * motion + .35 * response,
+        "head": _pivot((3, -6.5), angle, parent=body),
+        "tail": _pivot((-6, -7.7),
+                       math.sin(pose["phase"] * .4) * .025 * motion + .18 * response,
                        parent=body),
-        "crest_tip": (-3, -18.5) if scale >= .9 else (1.5, -16.3),
+        "crest_tip": (-4, -15.4) if scale >= .9 else (3, -13.3),
+        "legs": tuple(legs),
     }
 
 
@@ -780,51 +803,45 @@ def _parasaurolophus(canvas, pose, motion, palette):
     crest_x, crest_y = joints["crest_tip"]
     # The long tapered tail swings as one rigid counterweight.
     canvas.polygon(_outline((
-        (tail(-5, -8.5), tail(-8, -8.8), tail(-11, -8), tail(-14, -7)),
-        (tail(-14, -7), tail(-11, -6.6), tail(-7, -6), tail(-5, -6)),
-        (tail(-5, -6), tail(-5, -6.8), tail(-5, -7.8), tail(-5, -8.5)),
+        (tail(-6, -9), tail(-9, -9.2), tail(-12, -9.1), tail(-14.3, -8.6)),
+        (tail(-14.3, -8.6), tail(-12, -8.1), tail(-8, -6.8), tail(-6, -6.5)),
+        (tail(-6, -6.5), tail(-6, -7), tail(-6, -8), tail(-6, -9)),
     )), color, owner=owner, fill=" ")
-    for far, hip in ((True, 1), (False, -2)):
-        phase = pose["phase"] + (math.pi if far else 0)
-        step = math.sin(phase) * 1.1 * pose["stride"] * motion
-        lift = max(0, math.cos(phase)) * .65 * pose["stride"] * motion
-        canvas.polygon(tuple(body(x, y) for x, y in (
-            (hip-1, -6), (hip+1.2, -6), (hip+1.4+step*.3, -3.3),
-            (hip+step+.5, -.9-lift), (hip+step+2, -.4-lift),
-            (hip+step+2, -lift), (hip+step-.8, -lift),
-            (hip-.8+step*.3, -3.2),
-        )), shade if far else color, owner=owner, fill=" ")
-    # The torso is deliberately independent of head/tail reaction transforms.
+    # The trunk conceals the limb roots; far feet remain slightly offset.
+    for leg in joints["legs"]:
+        canvas.polygon(leg["points"], shade if leg["far"] else color,
+                       owner=owner, fill=" ")
+    # A high pelvis slopes into the lower shoulder, not an upright kangaroo chest.
+    # The torso is independent of head/tail reaction transforms.
     canvas.polygon(_outline((
-        (body(-6, -7), body(-6, -11), body(0, -11.5), body(3, -9)),
-        (body(3, -9), body(5, -7), body(4, -4.3), body(1, -4)),
-        (body(1, -4), body(-3, -3.5), body(-6, -4.5), body(-6, -7)),
+        (body(-7, -7), body(-7, -11), body(-1, -11.3), body(3.5, -8.7)),
+        (body(3.5, -8.7), body(5.2, -7), body(4.5, -4.7), body(1, -4.3)),
+        (body(1, -4.3), body(-3.5, -3.8), body(-7, -4.7), body(-7, -7)),
     )), color, owner=owner, fill=" ")
-    canvas.bezier((body(-4.7, -6), body(-2, -4.5),
-                   body(1, -4.6), body(2.8, -6)), shade, owner=owner)
+    canvas.bezier((body(-5.5, -6), body(-2, -4.7),
+                   body(1, -4.9), body(3.2, -6)), shade, owner=owner)
     # Neck, skull, crest and broad toothless bill share a single rigid pivot.
+    # The adult's tube sweeps back, while young animals have a low short crest.
     canvas.polygon(_outline((
-        (head(2, -6), head(1.5, -8), head(2.5, -12), head(5, -14.5)),
-        (head(5, -14.5), head(3, -15.5), head(crest_x, crest_y-1), head(crest_x, crest_y)),
-        (head(crest_x, crest_y), head(crest_x+.2, crest_y+1),
-         head(3, -14.8), head(6, -13.8)),
-        (head(6, -13.8), head(8, -14.5), head(9, -13.5), head(10, -12.6)),
-        (head(10, -12.6), head(11, -12.5), head(12.5, -12.8), head(13, -12)),
-        (head(13, -12), head(13.4, -11.1), head(11.3, -11), head(9.7, -11.3)),
-        (head(9.7, -11.3), head(7, -10), head(6, -7), head(4, -6)),
-        (head(4, -6), head(3.3, -5.8), head(2.8, -5.8), head(2, -6)),
+        (head(2.1, -6), head(1.9, -8.5), head(3.7, -10.8), head(5.9, -12.3)),
+        (head(5.9, -12.3), head(3.5, -13.3),
+         head(crest_x-.3, crest_y-.6), head(crest_x, crest_y)),
+        (head(crest_x, crest_y), head(crest_x+.2, crest_y+.6),
+         head(3.8, -11.9), head(6, -11.7)),
+        (head(6, -11.7), head(7.2, -12.4), head(8.8, -11.8), head(10.2, -10.5)),
+        (head(10.2, -10.5), head(11.4, -10.1), head(12.4, -10.7), head(12.8, -10)),
+        (head(12.8, -10), head(13.1, -9.4), head(11.2, -9.2), head(9.5, -9.6)),
+        (head(9.5, -9.6), head(7.1, -9.6), head(6.2, -6.5), head(4.3, -5.8)),
+        (head(4.3, -5.8), head(3.4, -5.6), head(2.8, -5.7), head(2.1, -6)),
     )), color, owner=owner, fill=" ")
-    canvas.bezier((head(5, -14.5), head(3.5, -15.6),
+    canvas.bezier((head(5.9, -12.3), head(3.5, -13.2),
                    head(crest_x+.5, crest_y+.3), head(crest_x, crest_y)),
                   light, owner=owner)
-    canvas.bezier((head(10, -11.8), head(11, -11.4),
-                   head(12, -11.5), head(12.7, -11.8)), shade, owner=owner)
-    canvas.char(*head(8, -13), "-" if pose["blink"] else "o",
+    canvas.bezier((head(10, -9.9), head(11, -9.5),
+                   head(12, -9.5), head(12.6, -9.8)), shade, owner=owner)
+    canvas.char(*head(7.8, -11.3), "-" if pose["blink"] else "o",
                 palette["eye"], owner=owner)
-    canvas.char(*head(12, -12.2), ".", shade, owner=owner)
-    # Short relaxed forelimbs, not grasping claws.
-    canvas.path((body(3.3, -7.6), body(4.4, -5.5), body(5.7, -5.7)),
-                shade, owner=owner)
+    canvas.char(*head(12, -10.1), ".", shade, owner=owner)
     for x, y in ((-3.5, -9.3), (-1.7, -8.5), (0, -9)):
         canvas.char(*body(x, y), ".", light, owner=owner)
 
@@ -1086,13 +1103,13 @@ def _triceratops_pose(pose, motion):
     body = lambda x, y: (pose["x"] + x * scale, pose["foot_y"] + (y - 54.5) * scale)
     response = pose["reaction"] * motion
     grazing = pose["graze"] * (.5 + .08 * math.sin(pose["phase"] * .6)) * motion
-    head_angle = (-.65 * pose["nuzzle"] - .32 * response if pose["juvenile"]
+    head_angle = (-.32 * response if pose["juvenile"]
                   else min(.6, grazing + .36 * response))
     return {
         "body": body,
         "head": _pivot((4, 47), head_angle, parent=body),
         "tail": _pivot((-8, 48), -.12 * math.sin(pose["phase"] * .4) * motion
-                       - .35 * response + .85 * pose["calf_near"], parent=body),
+                       - .35 * response, parent=body),
     }
 
 

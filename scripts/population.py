@@ -63,16 +63,6 @@ def herbivore_pose(walk_time, phase, start_x, reaction, blink):
         'blink': blink,
     }
 
-def _triceratops_calf_offset(age):
-    """Close gently before a stop; reopen the gap without walking backwards."""
-    if age < 12:
-        progress, start, end = age / 12, -16.0, -26.0
-    elif age < 18:
-        progress, start, end = (age - 12) / 6, -26.0, -16.0
-    else:
-        return -16.0
-    return start + (end - start) * progress * progress * (3 - 2 * progress)
-
 
 def triceratops_extents(count):
     """Conservative adult or adult/calf prefix bounds, relative to the adult."""
@@ -85,21 +75,15 @@ def triceratops_poses(walk_time, phase, start_x, time, calf_phase,
                            (time + phase) % 6.3 > 6.1)
     travel = walking_distance(walk_time, phase) - walking_distance(0, phase)
     cycle_age = (walk_time + phase * 24 / math.tau) % 24
-    offset = _triceratops_calf_offset(cycle_age)
-    initial_offset = _triceratops_calf_offset(phase * 24 / math.tau % 24)
-    lower = max(0.0, min(1.0, cycle_age - 18))
-    raise_ = max(0.0, min(1.0, 24 - cycle_age))
-    nuzzle = lower * lower * (3 - 2 * lower) * raise_ * raise_ * (3 - 2 * raise_)
-    adult.update(id='triceratops', scale=1.0, foot_y=54.5, juvenile=False,
-                 calf_near=(offset + 26) / 10, nuzzle=0.0)
+    adult.update(id='triceratops', scale=1.0, foot_y=54.5, juvenile=False)
     calf = {
-        'id': 'triceratops:calf', 'x': adult['x'] + offset,
+        # Fixed following distance leaves daylight behind the adult's tail.
+        'id': 'triceratops:calf', 'x': adult['x'] - 26,
         'scale': .56, 'foot_y': 54.5, 'juvenile': True,
-        'phase': (travel + offset - initial_offset) * 2.1 / (.9 * .56) + calf_phase,
+        'phase': travel * 2.1 / (.9 * .56) + calf_phase,
         'stride': adult['stride'], 'graze': 0.0,
         'reaction': calf_reaction, 'blink': (time + calf_phase) % 5.9 > 5.7,
-        'nuzzle': nuzzle, 'calf_near': 0.0,
-        'state': 'following' if cycle_age < 18 else 'nuzzling' if nuzzle > 0 else 'resting',
+        'state': 'following' if cycle_age < 18 else 'resting',
     }
     return adult, calf
 

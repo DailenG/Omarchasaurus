@@ -35,7 +35,7 @@ class DiplodocusVisits:
         self.approach_duration = Fraction(0)
         self.travel = 0.0
         self.resident = False
-        self.exit_at = None
+        self.exit_at: Fraction | None = None
         self.deadline = None
         if resident:
             self.generation = 0
@@ -169,6 +169,7 @@ class DiplodocusVisits:
             'id': self.descriptor.id, 'x': x,
             'foot_y': self.descriptor.foot_y, 'depth': self.descriptor.depth,
             'phase': self.descriptor.phase + travel * 1.8,
+            'tail_time': motion_time + self.descriptor.look_phase * .2,
             'stride': stride, 'drink': drink,
             'look': .045 * math.sin(motion_time * .31 + self.descriptor.look_phase),
             'reaction': reaction,

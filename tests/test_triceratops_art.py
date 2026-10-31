@@ -51,30 +51,57 @@ class TriceratopsArtwork(unittest.TestCase):
         return {(x, y) for y, row in enumerate(canvas.owners)
                 for x, value in enumerate(row) if value == owner}
 
-    def test_nuzzle_contacts_actual_parent_flank_and_tail_clears_juvenile_frill(self):
-        for motion in (1, .18):
-            calf = _triceratops_pose(self.calf, motion)
-            mouth = calf['head'](13, 49.8)
-            self.assertTrue(self.adult['x'] - 9 <= mouth[0] <= self.adult['x'] - 8)
-            self.assertTrue(48 <= mouth[1] <= 51)
-            canvas = self.frame(self.adult, motion)
-            canvas.depth = .55
-            px, py = map(round, canvas.project(*mouth))
-            self.assertEqual(canvas.owners[py][px], 'triceratops')
-            _triceratops(canvas, self.calf, motion, _PALETTES['morning'])
-            self.assertEqual(canvas.owners[py][px], 'triceratops:calf')
-            for reaction in (0, 1):
-                adult = _triceratops_pose(dict(self.adult, reaction=reaction,
-                                              phase=math.pi / .8), motion)
-                frill_top = min(calf['head'](*point)[1]
-                                for point in ((2.4, 43.2), (4.2, 42.8), (6.7, 42.4)))
-                self.assertLess(adult['tail'](-14, 49)[1] + .4, frill_top)
+    def test_stop_restart_and_independent_clicks_keep_muzzle_and_silhouettes_apart(self):
+        # Sample both sides of settling/restart and the middle of the stop.
+        for seconds in (12, 17, 17.999, 18, 18.001, 19, 21, 23, 23.999, 24, 24.001, 25):
+            for motion in (1, .18):
+                for reactions in ((0, 0), (.5, 0), (1, 0), (0, .5), (0, 1), (1, 1)):
+                    with self.subTest(seconds=seconds, motion=motion, reactions=reactions):
+                        adult, calf = triceratops_poses(seconds, 0, 45, seconds, 1.2, *reactions)
+                        adult_joints = _triceratops_pose(adult, motion)
+                        calf_joints = _triceratops_pose(calf, motion)
+                        tail_rear = min(adult_joints['tail'](*point)[0] for point in (
+                            (-8, 47), (-11, 47.4), (-13, 48), (-14, 49),
+                            (-12, 49.8), (-10, 49.5), (-8, 49)))
+                        for point in ((12, 48), (14, 49.5), (12, 50.5), (13, 49.8)):
+                            self.assertLess(calf_joints['head'](*point)[0], tail_rear - 3)
+                        canvas = self.frame(adult, motion, width=240, height=80)
+                        child = self.frame(calf, motion, width=240, height=80)
+                        parent_pixels = self.pixels(canvas, adult['id'])
+                        child_pixels = self.pixels(child, calf['id'])
+                        self.assertTrue(parent_pixels)
+                        self.assertTrue(child_pixels)
+                        self.assertGreaterEqual(min(x for x, y in parent_pixels)
+                                                - max(x for x, y in child_pixels), 3)
+                        _triceratops(canvas, calf, motion, _PALETTES['morning'])
+                        self.assertEqual(self.pixels(canvas, adult['id']), parent_pixels)
+                        self.assertEqual(self.pixels(canvas, calf['id']), child_pixels)
 
-    def test_intermediate_nuzzles_and_clicks_keep_rigid_skull_tail_and_torso(self):
-        body_pixels = None
-        for nuzzle in (0, .25, .5, .75, 1):
-            for reaction in (0, .5, 1):
-                pose = dict(self.calf, nuzzle=nuzzle, reaction=reaction)
+    def test_small_terminal_cells_leave_visible_daylight_at_each_cell_aspect(self):
+        for aspect in (1.2, 2, 3):
+            for motion in (1, .18):
+                for reaction in (0, .5, 1):
+                    adult = dict(self.adult, reaction=reaction)
+                    calf = dict(self.calf, reaction=reaction)
+                    parent_pixels = self.pixels(
+                        self.frame(adult, motion, width=120, height=48, aspect=aspect), adult['id'])
+                    child_pixels = self.pixels(
+                        self.frame(calf, motion, width=120, height=48, aspect=aspect), calf['id'])
+                    self.assertTrue(parent_pixels)
+                    self.assertTrue(child_pixels)
+                    self.assertGreaterEqual(min(x for x, y in parent_pixels)
+                                            - max(x for x, y in child_pixels), 2)
+
+    def test_stopped_calf_skull_remains_neutral_and_clicks_keep_rigid_anatomy(self):
+        for motion in (1, .18):
+            for seconds in (17.999, 18, 18.001, 19, 21, 23, 23.999, 24, 24.001):
+                calf = triceratops_poses(seconds, 0, 45, seconds, 1.2, 0, 0)[1]
+                joints = _triceratops_pose(calf, motion)
+                self.assertEqual(joints['head'](14, 49.5), joints['body'](14, 49.5))
+        for original in (self.adult, self.calf):
+            body_pixels = None
+            for reaction in (0, .25, .5, .75, 1):
+                pose = dict(original, reaction=reaction)
                 joints = _triceratops_pose(pose, 1)
                 for part, start, end in (('head', (4, 47), (14, 49.5)),
                                          ('head', (5, 47), (12, 48)),
@@ -90,6 +117,12 @@ class TriceratopsArtwork(unittest.TestCase):
                 if body_pixels is None:
                     body_pixels = torso
                 self.assertEqual(torso, body_pixels)
+        for motion in (1, .18):
+            clicked = _triceratops_pose(dict(self.calf, reaction=1), motion)
+            origin = clicked['head'](4, 47)
+            forward = clicked['head'](14, 47)
+            self.assertAlmostEqual(math.atan2(forward[1] - origin[1], forward[0] - origin[0]),
+                                   -.32 * motion)
         rest = _triceratops_pose(self.calf, 1)['head'](14, 49.5)
         clicked = _triceratops_pose(dict(self.calf, reaction=1), 1)['head'](14, 49.5)
         calm = _triceratops_pose(dict(self.calf, reaction=1), .18)['head'](14, 49.5)
@@ -115,8 +148,8 @@ class TriceratopsArtwork(unittest.TestCase):
                 a, b = small.bounds(pose['id']), large.bounds(pose['id'])
                 self.assertAlmostEqual(b[2] / a[2], 2, delta=.3)
                 self.assertAlmostEqual(b[3] / a[3], 2, delta=.3)
-                for nuzzle in (0, .5, 1):
-                    frame = self.frame(dict(pose, nuzzle=nuzzle, reaction=1), aspect=aspect)
+                for reaction in (0, .5, 1):
+                    frame = self.frame(dict(pose, reaction=reaction), aspect=aspect)
                     tolerance_x = .51 / (frame.aspect * frame.scale)
                     tolerance_y = .51 / frame.scale
                     owned = self.pixels(frame, pose['id'])

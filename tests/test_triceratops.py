@@ -1,4 +1,5 @@
 import copy
+import math
 from pathlib import Path
 import random
 import sys
@@ -36,28 +37,49 @@ class TriceratopsBehavior(unittest.TestCase):
             nanoseconds -= delta
 
     def test_following_is_forward_only_and_stops_and_cycle_boundaries_are_continuous(self):
-        previous = self.poses(0)
-        for index in range(1, 4801):
-            pair = self.poses(index / 100)
-            self.assertGreaterEqual(pair[0]['x'], previous[0]['x'] - 1e-10)
-            self.assertGreaterEqual(pair[1]['x'], previous[1]['x'] - 1e-10)
-            self.assertGreaterEqual(pair[1]['x'] - 15 * pair[1]['scale'],
-                                    pair[0]['x'] + triceratops_extents(2)[0])
-            self.assertLess(pair[1]['x'] + 8 * pair[1]['scale'], pair[0]['x'] - 9)
-            previous = pair
-        for boundary in (12, 18, 24):
-            before, at, after = (self.poses(boundary + delta)[1]
-                                 for delta in (-1e-5, 0, 1e-5))
-            left_speed = (at['x'] - before['x']) / 1e-5
-            right_speed = (after['x'] - at['x']) / 1e-5
-            self.assertAlmostEqual(left_speed, right_speed, delta=1e-4)
-        stopped = [self.poses(seconds) for seconds in (18, 19, 21, 23, 24)]
-        for pair in stopped:
-            self.assertEqual(pair[0]['x'], stopped[0][0]['x'])
-            self.assertEqual(pair[1]['x'], stopped[0][1]['x'])
-            self.assertEqual(pair[1]['stride'], 0)
-        self.assertEqual(stopped[2][1]['nuzzle'], 1)
-        self.assertEqual(stopped[-1][1]['nuzzle'], 0)
+        for phase in (0, math.pi, math.tau - .01):
+            previous = self.poses(0, phase)
+            for index in range(1, 4801):
+                seconds = index / 100
+                pair = self.poses(seconds, phase)
+                for pose, old in zip(pair, previous):
+                    self.assertGreaterEqual(pose['x'], old['x'] - 1e-10)
+                    self.assertLessEqual(pose['x'] - old['x'], .013)
+                self.assertAlmostEqual(pair[1]['x'] - previous[1]['x'],
+                                       pair[0]['x'] - previous[0]['x'])
+                self.assertGreaterEqual(pair[1]['x'] - 15 * pair[1]['scale'],
+                                        pair[0]['x'] + triceratops_extents(2)[0])
+                self.assertLess(pair[1]['x'] + 15 * pair[1]['scale'],
+                                pair[0]['x'] - 17.5)
+                self.assertEqual(pair[1]['stride'], pair[0]['stride'])
+                self.assertGreaterEqual(pair[1]['phase'], previous[1]['phase'])
+                previous = pair
+            self.assertGreater(previous[1]['phase'], self.poses(0, phase)[1]['phase'])
+            for age in (24, 25, 41, 42, 48):
+                boundary = age - phase * 24 / math.tau
+                before, at, after = (self.poses(boundary + delta, phase)[1]
+                                     for delta in (-1e-5, 0, 1e-5))
+                left_speed = (at['x'] - before['x']) / 1e-5
+                right_speed = (after['x'] - at['x']) / 1e-5
+                self.assertAlmostEqual(left_speed, right_speed, delta=1e-4)
+        stopped = [self.poses(seconds) for seconds in (18, 19, 21, 23, 23.999)]
+        for adult, calf in stopped:
+            self.assertEqual(adult['x'], stopped[0][0]['x'])
+            self.assertEqual(calf['x'], stopped[0][1]['x'])
+            self.assertEqual(calf['phase'], stopped[0][1]['phase'])
+            self.assertEqual(calf['stride'], 0)
+            self.assertEqual(calf['graze'], 0)
+            self.assertEqual(calf['state'], 'resting')
+
+    def test_independent_clicks_never_retime_or_reposition_either_actor(self):
+        for seconds in (0, 17.5, 18, 18.5, 21, 23.5, 24, 24.5):
+            baseline = self.poses(seconds)
+            for adult_reaction, calf_reaction in ((0, .5), (0, 1), (.5, 0), (1, 0), (1, 1)):
+                pair = triceratops_poses(seconds, 0, 0, seconds, 1.2,
+                                         adult_reaction, calf_reaction)
+                for pose, original in zip(pair, baseline):
+                    self.assertEqual({key: value for key, value in pose.items() if key != 'reaction'},
+                                     {key: value for key, value in original.items() if key != 'reaction'})
 
     def test_calf_wraps_with_parent_but_gait_distance_does_not_reset(self):
         world = World(self.config())
@@ -76,7 +98,7 @@ class TriceratopsBehavior(unittest.TestCase):
                                        pair[1]['x'] - previous[1]['x'], delta=.6)
             self.assertGreaterEqual(pair[1]['x'] - 15 * pair[1]['scale'],
                                     pair[0]['x'] + triceratops_extents(2)[0])
-            self.assertLess(pair[1]['x'] + 8 * pair[1]['scale'], pair[0]['x'] - 9)
+            self.assertLess(pair[1]['x'] + 15 * pair[1]['scale'], pair[0]['x'] - 17.5)
             previous = pair
         self.assertTrue(wrapped, 'The route must actually cross its common wrap')
 
@@ -100,7 +122,7 @@ class TriceratopsBehavior(unittest.TestCase):
         world.paused = False
         self.advance(world, SECOND)
         replay = World(self.config(), elapsed_ns=35 * SECOND + SECOND // 4).snapshot()
-        for key in ('x', 'phase', 'stride', 'nuzzle', 'calf_near'):
+        for key in ('x', 'phase', 'stride', 'graze', 'state', 'reaction'):
             self.assertEqual(world.snapshot()['triceratops_calf'][key], replay['triceratops_calf'][key])
 
     def test_global_ceiling_prefers_parent_and_jump_never_evicts_a_pair(self):
@@ -172,7 +194,16 @@ class TriceratopsBehavior(unittest.TestCase):
         self.assertLess(replacement['herbivores']['triceratops']['x'] + nose, left)
         self.assertEqual(replacement['triceratops_calf']['reaction'], 0)
         self.assertTrue(world.react('triceratops:calf'))
-        self.advance(world, 40 * SECOND)
+        # Wait for the admitted rear to enter, not an old fixed arrival time
+        # that depended on the calf closing the gap during a stop.
+        incoming = replacement['visitor']
+        entry_x = left - rear + 1
+        entry_age = walking_time(
+            walking_distance(0, incoming['phase']) + entry_x - world.visitors.start_x,
+            incoming['phase'])
+        remaining = world.visitors.born + entry_age - float(world._walk_ns / SECOND)
+        self.advance(world, max(0, int(remaining * SECOND) + 1))
+        self.assertEqual(world.snapshot()['visitor']['generation'], incoming['generation'])
         self.assertIn('triceratops:calf', visible_cast_members(frame, world.snapshot(), world.config))
 
     def test_widening_extends_pair_exit_and_narrowing_with_adult_only_cap_is_not_backdated(self):

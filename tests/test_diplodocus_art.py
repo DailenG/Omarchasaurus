@@ -34,7 +34,7 @@ class DiplodocusArtwork(unittest.TestCase):
         self.snapshot = World(self.config).snapshot()
         self.pose = dict(id='diplodocus', x=65, foot_y=36.5, depth=.21,
                          phase=0, stride=0, drink=1, look=0, reaction=0,
-                         blink=False, state='drinking', generation=1)
+                         blink=False, state='drinking', generation=1, tail_time=16)
         self.snapshot['diplodocus'] = self.pose
         self.layout = replace(self.snapshot['layout'], trees=(), ripples=(),
                               lily_pads=(), rocks=(), ferns=(), cycads=(),
@@ -111,29 +111,26 @@ class DiplodocusArtwork(unittest.TestCase):
             clicked = _diplodocus_pose(dict(self.pose, reaction=1), motion)
             travels[motion] = math.dist(rest['head'](3.15, .3), clicked['head'](3.15, .3))
             self.assertLess(clicked['head'](3.15, .3)[1], rest['head'](3.15, .3)[1])
-            self.assertNotEqual(rest['whip'](-40, -10.6), clicked['whip'](-40, -10.6))
+            self.assertNotEqual(rest['tail'][-1], clicked['tail'][-1])
             for drink in (0, .25, .5, .75, 1):
                 for reaction in (0, .35, .7, 1):
                     for look in (-.04, .04):
                         joints = _diplodocus_pose(dict(self.pose, drink=drink,
                                                       reaction=reaction, look=look), motion)
-                        self.assertEqual(len(joints['neck']), len(neutral['neck']))
-                        for a, b, reference_a, reference_b in zip(
-                                joints['neck'], joints['neck'][1:],
-                                neutral['neck'], neutral['neck'][1:]):
-                            self.assertAlmostEqual(math.dist(a, b),
-                                                   math.dist(reference_a, reference_b), places=7)
-                        self.assertEqual(joints['neck'][0], neutral['neck'][0])
-                        for part, a, b in (
-                            ('head', (-.25, -.55), (3.25, .35)),
-                            ('tail', (-9, -11), (-25, -12)),
-                            ('whip', (-25, -12), (-40, -10.6)),
-                        ):
-                            self.assertAlmostEqual(math.dist(joints[part](*a), joints[part](*b)),
-                                                   math.dist(a, b), places=7)
+                        for chain in ('neck', 'tail'):
+                            self.assertEqual(len(joints[chain]), len(neutral[chain]))
+                            for a, b, reference_a, reference_b in zip(
+                                    joints[chain], joints[chain][1:],
+                                    neutral[chain], neutral[chain][1:]):
+                                self.assertAlmostEqual(math.dist(a, b),
+                                                       math.dist(reference_a, reference_b), places=7)
+                            self.assertEqual(joints[chain][0], neutral[chain][0])
+                        self.assertAlmostEqual(
+                            math.dist(joints['head'](-.25, -.55), joints['head'](3.25, .35)),
+                            math.dist((-.25, -.55), (3.25, .35)), places=7)
                         self.assertEqual(joints['body'](-5, -10), neutral['body'](-5, -10))
                         self.assertGreater(joints['head'](3.15, .3)[0], joints['neck'][0][0])
-                        self.assertLess(joints['whip'](-40, -10.6)[0], joints['body'](-9, -11)[0])
+                        self.assertLess(joints['tail'][-1][0], joints['body'](-9, -11)[0])
         self.assertLess(travels[.18], travels[1] / 3)
         frames = [self.frame(dict(self.pose, reaction=reaction))
                   for reaction in (0, .5, 1)]
@@ -146,6 +143,65 @@ class DiplodocusArtwork(unittest.TestCase):
         self.assertEqual(torso[0], torso[2])
         self.assertNotEqual(frames[0].chars, frames[-1].chars)
         self.assertTrue(any(frames[0].chars[y][x] == ' ' for x, y in self.owned(frames[0])))
+
+    def test_idle_tail_swishes_without_moving_body_feet_or_drinking_head(self):
+        quiet = self.frame(dict(self.pose, tail_time=16))
+        def tail_pixels(frame):
+            return {(x, y, frame.chars[y][x]) for x, y in self.owned(frame)
+                    if frame.unproject(x, y, self.pose['depth'])[0] < self.pose['x'] - 12}
+        for time in (2, 6):
+            active = self.frame(dict(self.pose, tail_time=time))
+            self.assertNotEqual(tail_pixels(active), tail_pixels(quiet))
+            x0, _ = self.pixel(quiet, (self.pose['x'] - 9, 0))
+            self.assertEqual([row[x0:] for row in active.chars],
+                             [row[x0:] for row in quiet.chars])
+            self.assertEqual([row[x0:] for row in active.owners],
+                             [row[x0:] for row in quiet.owners])
+        resting = self.frame(dict(self.pose, tail_time=20))
+        self.assertEqual(tail_pixels(resting), tail_pixels(quiet))
+
+    def test_new_resident_session_shows_visible_idle_tail_motion_in_first_few_seconds(self):
+        config = copy.deepcopy(self.config)
+        config['seed'] = 42
+        world = World(config)
+        before = world.snapshot()['diplodocus']
+        for _ in range(12):
+            world.advance(250_000_000)
+        after = world.snapshot()['diplodocus']
+        self.assertEqual((before['x'], before['foot_y'], before['phase']),
+                         (after['x'], after['foot_y'], after['phase']))
+        self.assertNotEqual(_diplodocus_pose(before, 1)['tail'][-1],
+                            _diplodocus_pose(after, 1)['tail'][-1])
+        rasters = []
+        for pose in (before, after):
+            frame = self.frame(pose, width=160, height=48)
+            rasters.append({(x, y, frame.chars[y][x]) for x, y in self.owned(frame)
+                            if frame.chars[y][x] != ' '
+                            and frame.unproject(x, y, pose['depth'])[0] < pose['x'] - 12})
+        self.assertNotEqual(rasters[0], rasters[1])
+
+    def test_tail_stays_attached_airborne_and_fixed_length_through_swishes_and_gait(self):
+        reference = _diplodocus_pose(self.pose, 1)['tail']
+        travel = {}
+        for motion in (1, .18):
+            tips = []
+            for time in range(65):
+                for reaction in (0, .5, 1):
+                    joints = _diplodocus_pose(dict(self.pose, tail_time=time,
+                                                  phase=time, stride=1, reaction=reaction), motion)
+                    tail = joints['tail']
+                    self.assertEqual(tail[0], reference[0])
+                    for a, b, c, d in zip(tail, tail[1:], reference, reference[1:]):
+                        self.assertAlmostEqual(math.dist(a, b), math.dist(c, d), places=7)
+                        self.assertLess(b[0], a[0])
+                    for x, y in tail:
+                        self.assertGreaterEqual(x, self.pose['x'] - 42)
+                        self.assertGreaterEqual(y, self.pose['foot_y'] - 20)
+                        self.assertLess(y, self.pose['foot_y'])
+                    if reaction == 0:
+                        tips.append(tail[-1][1])
+            travel[motion] = max(tips) - min(tips)
+        self.assertLess(travel[.18], travel[1] / 3)
 
     def test_four_equal_height_legs_have_small_independent_gait_without_body_bounce(self):
         for motion in (1, .18):
@@ -197,7 +253,8 @@ class DiplodocusArtwork(unittest.TestCase):
                 self.assertGreater(a[2] / (aspect * a[3]), 3)
                 for fraction in (0, .25, .5, .75, 1):
                     pose = dict(self.pose, drink=fraction, reaction=1-fraction,
-                                look=.04, stride=1, phase=fraction*math.tau)
+                                look=.04, stride=1, phase=fraction*math.tau,
+                                tail_time=fraction*32)
                     frame = self.frame(pose, height=80, aspect=aspect,
                                        camera=(3.5, -2), preset=preset)
                     dx = .51 / (frame.aspect * frame.scale)

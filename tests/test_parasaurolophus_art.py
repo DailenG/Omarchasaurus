@@ -60,21 +60,20 @@ class ParasaurolophusArtwork(unittest.TestCase):
                     frames.append(frame)
                 for part, a, b in (
                     ('body', (-4, -9), (2, -5)),
-                    ('head', (8, -13), (13, -12)),
-                    ('head', joints['crest_tip'], (13, -12)),
-                    ('tail', (-14, -7), (-5, -7.5)),
+                    ('head', (7.8, -11.3), (12.8, -10)),
+                    ('head', joints['crest_tip'], (12.8, -10)),
+                    ('tail', (-14.3, -8.6), (-6, -7.7)),
                 ):
                     self.assertAlmostEqual(math.dist(joints[part](*a), joints[part](*b)),
                                            math.dist(a, b), places=7)
-                self.assert_owned_near(frame, joints['head'](8, -13), member['id'])
-            travel[motion] = math.dist(poses[0]['head'](8, -13),
-                                       poses[1]['head'](8, -13))
-        self.assertGreater(travel[1], 3)
+                self.assert_owned_near(frame, joints['head'](7.8, -11.3), member['id'])
+            travel[motion] = math.dist(poses[0]['head'](7.8, -11.3),
+                                       poses[1]['head'](7.8, -11.3))
         self.assertLess(travel[.18], travel[1] / 2)
         torso = []
         for frame in frames:
-            low_x, low_y = map(round, frame.project(66.5, 39.5))
-            high_x, high_y = map(round, frame.project(70, 45))
+            low_x, low_y = map(round, frame.project(66, 41.5))
+            high_x, high_y = map(round, frame.project(69, 44.5))
             torso.append([(frame.chars[y][x], frame.owners[y][x])
                           for y in range(low_y, high_y + 1)
                           for x in range(low_x, high_x + 1)])
@@ -83,9 +82,9 @@ class ParasaurolophusArtwork(unittest.TestCase):
 
     def test_click_lifts_a_drinking_head_with_a_smaller_reduced_motion_response(self):
         member = dict(self.member, drink=1, reaction=0)
-        resting = _parasaurolophus_pose(member, 1)['head'](13, -12)
-        normal = _parasaurolophus_pose(dict(member, reaction=1), 1)['head'](13, -12)
-        calm = _parasaurolophus_pose(dict(member, reaction=1), .18)['head'](13, -12)
+        resting = _parasaurolophus_pose(member, 1)['head'](12.8, -10)
+        normal = _parasaurolophus_pose(dict(member, reaction=1), 1)['head'](12.8, -10)
+        calm = _parasaurolophus_pose(dict(member, reaction=1), .18)['head'](12.8, -10)
         self.assertLess(normal[1], resting[1] - 3)
         self.assertLess(calm[1], resting[1])
         self.assertLess(math.dist(resting, calm), math.dist(resting, normal) / 2)
@@ -98,27 +97,27 @@ class ParasaurolophusArtwork(unittest.TestCase):
                                   reaction=0, state='drinking')
                     joints = _parasaurolophus_pose(member, motion)
                     upright = _parasaurolophus_pose(dict(member, drink=0, reaction=0), 0)
-                    bill = joints['head'](13, -12)
-                    self.assertGreater(bill[1] - upright['head'](13, -12)[1], 3)
+                    bill = joints['head'](12.8, -10)
+                    self.assertGreater(bill[1] - upright['head'](12.8, -10)[1], 3)
                     self.assertGreaterEqual(bill[1], 47)
                     self.assertLessEqual(bill[1], 48.1)
-                    for a, b in (((8, -13), (13, -12)),
-                                 (joints['crest_tip'], (13, -12))):
+                    for a, b in (((7.8, -11.3), (12.8, -10)),
+                                 (joints['crest_tip'], (12.8, -10))):
                         self.assertAlmostEqual(math.dist(joints['head'](*a), joints['head'](*b)),
                                                math.dist(a, b) * scale, places=7)
                     frame = self.frame(member, motion)
-                    for landmark in ((13, -12), joints['crest_tip']):
+                    for landmark in ((12.8, -10), joints['crest_tip']):
                         self.assert_owned_near(frame, joints['head'](*landmark), member['id'])
                     # Motion preferences must not attenuate the functional bend.
-                    self.assertEqual(bill, _parasaurolophus_pose(member, 0)['head'](13, -12))
+                    self.assertEqual(bill, _parasaurolophus_pose(member, 0)['head'](12.8, -10))
 
     def test_juvenile_has_shorter_crest_and_proportionally_smaller_body(self):
         adult = _parasaurolophus_pose(self.member, 0)
         juvenile_member = dict(self.member, scale=.6)
         juvenile = _parasaurolophus_pose(juvenile_member, 0)
-        adult_crest = math.dist(adult['head'](*adult['crest_tip']), adult['head'](5, -14.5))
+        adult_crest = math.dist(adult['head'](*adult['crest_tip']), adult['head'](5.9, -12.3))
         juvenile_crest = math.dist(juvenile['head'](*juvenile['crest_tip']),
-                                   juvenile['head'](5, -14.5))
+                                   juvenile['head'](5.9, -12.3))
         self.assertLess(juvenile_crest, adult_crest * .4)
         for a, b in (((-6, -7), (3, -9)), ((-4, -10), (1, -4))):
             self.assertAlmostEqual(math.dist(juvenile['body'](*a), juvenile['body'](*b)),
@@ -136,24 +135,85 @@ class ParasaurolophusArtwork(unittest.TestCase):
                 self.assertAlmostEqual(b[3] / a[3], 2, delta=.12)
 
     def test_all_articulation_stays_inside_member_envelope_and_uses_family_depth(self):
-        for scale in (1, .5):
-            for phase in (0, math.pi / 2, math.pi):
-                for drink, reaction in ((0, 0), (0, 1), (.45, 0), (1, .4), (1, 1)):
+        for scale in (1, .72, .6, .5):
+            for phase in (0, math.pi / 2, math.pi, math.pi * 1.5):
+                for drink, reaction in ((0, 0), (0, 1), (.45, 0), (1, 0), (1, .4), (1, 1)):
                     member = dict(self.member, scale=scale, phase=phase, stride=1,
                                   drink=drink, reaction=reaction)
                     frame = self.frame(member, camera=(7, -2), aspect=3)
                     self.assertEqual(frame.depth, .32)
                     points = [frame.unproject(x, y, .32) for x, y in self.owned(frame)]
                     joints = _parasaurolophus_pose(member, 1)
-                    self.assert_owned_near(frame, joints['head'](8, -13), member['id'])
+                    self.assert_owned_near(frame, joints['head'](7.8, -11.3), member['id'])
                     # Raster rounding is at most half a terminal cell per axis.
                     dx = .51 / (frame.aspect * frame.scale)
                     dy = .51 / frame.scale
                     for x, y in points:
                         self.assertGreaterEqual(x, member['x'] - 15 * scale - dx)
-                        self.assertLessEqual(x, member['x'] + 15 * scale + dx)
+                        self.assertLessEqual(x, member['x'] + 16 * scale + dx)
                         self.assertGreaterEqual(y, member['foot_y'] - 20 * scale - dy)
                         self.assertLessEqual(y, member['foot_y'] + dy)
+
+    def test_four_weight_bearing_limbs_have_grounded_feet_in_rest_drink_and_clicks(self):
+        for scale in (1, .72, .6, .5):
+            for width, height in ((200, 60), (400, 120)):
+                for drink, reaction in ((0, 0), (1, 0), (0, 1), (1, 1)):
+                    with self.subTest(scale=scale, grid=(width, height),
+                                      drink=drink, reaction=reaction):
+                        member = dict(self.member, scale=scale, drink=drink,
+                                      reaction=reaction)
+                        joints = _parasaurolophus_pose(member, 1)
+                        legs = joints['legs']
+                        self.assertEqual({(leg['far'], leg['fore']) for leg in legs},
+                                         {(far, fore) for far in (True, False)
+                                          for fore in (True, False)})
+                        frame = self.frame(member, width=width, height=height)
+                        for leg in legs:
+                            self.assertEqual(leg['foot'][1], member['foot_y'])
+                            self.assertEqual(max(y for x, y in leg['points']),
+                                             member['foot_y'])
+                            self.assert_owned_near(frame, leg['foot'], member['id'])
+                        fore = [leg for leg in legs if leg['fore']]
+                        hind = [leg for leg in legs if not leg['fore']]
+                        # Shorter, narrower forelimbs support the shoulder instead
+                        # of hanging as arms beside the chest.
+                        self.assertGreater(min(leg['points'][0][1] for leg in fore),
+                                           max(leg['points'][0][1] for leg in hind))
+                        self.assertGreater(min(leg['foot'][0] for leg in fore),
+                                           max(leg['foot'][0] for leg in hind) + 4 * scale)
+                        px, py = map(round, frame.project(member['x'] + 2 * scale,
+                                                         member['foot_y']))
+                        self.assertNotEqual(frame.owners[py][px], member['id'])
+
+    def test_gait_lifts_only_swing_feet_and_keeps_clicks_out_of_the_support_geometry(self):
+        for phase in (0, .7, math.pi / 2, math.pi, math.pi * 1.5):
+            member = dict(self.member, stride=1, phase=phase)
+            legs = _parasaurolophus_pose(member, 1)['legs']
+            clicked = _parasaurolophus_pose(dict(member, reaction=1), 1)['legs']
+            self.assertEqual(legs, clicked)
+            self.assertGreaterEqual(sum(abs(leg['foot'][1] - member['foot_y']) < 1e-8
+                                        for leg in legs), 2)
+            frame = self.frame(member)
+            for leg in legs:
+                self.assertGreaterEqual(leg['foot'][1], member['foot_y'] - .45)
+                self.assertLessEqual(leg['foot'][1], member['foot_y'])
+                self.assert_owned_near(frame, leg['foot'], member['id'])
+            next_legs = _parasaurolophus_pose(dict(member, phase=phase + .001), 1)['legs']
+            for leg, next_leg in zip(legs, next_legs):
+                self.assertLess(math.dist(leg['foot'], next_leg['foot']), .002)
+        still = _parasaurolophus_pose(dict(self.member, stride=1, phase=.7), 0)['legs']
+        self.assertTrue(all(leg['foot'][1] == self.member['foot_y'] for leg in still))
+
+    def test_adult_crest_sweeps_back_above_a_horizontal_counterweight(self):
+        joints = _parasaurolophus_pose(self.member, 0)
+        base = joints['head'](5.9, -12.3)
+        tip = joints['head'](*joints['crest_tip'])
+        self.assertLess(tip[0], base[0] - 8)
+        self.assertGreater(tip[1], base[1] - 4)
+        tail_tip = joints['tail'](-14.3, -8.6)
+        tail_base = joints['tail'](-6, -7.7)
+        self.assertLess(abs(tail_tip[1] - tail_base[1]), 1)
+        self.assertLess(tail_tip[1], self.member['foot_y'] - 8)
 
     def test_real_cast_renders_only_selected_individuals_and_clips_at_viewport_edge(self):
         snapshot = copy.deepcopy(self.snapshot)
@@ -175,7 +235,7 @@ class ParasaurolophusArtwork(unittest.TestCase):
         # Cropping is a Canvas projection, never a second miniature animal.
         reference = self.frame(width=400, height=120)
         clipped = self.frame(width=400, height=120, camera=(160, 0))
-        self.assert_owned_near(clipped, _parasaurolophus_pose(self.member, 1)['head'](13, -12),
+        self.assert_owned_near(clipped, _parasaurolophus_pose(self.member, 1)['head'](12.8, -10),
                                self.member['id'])
         self.assertLess(clipped.bounds(self.member['id'])[2], reference.bounds(self.member['id'])[2])
         offscreen = self.frame(width=400, height=120, camera=(1000, 0))

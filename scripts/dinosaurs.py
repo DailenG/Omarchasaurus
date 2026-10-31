@@ -213,6 +213,47 @@ def _apply_preview_event(world, event, canvas, origin, document, overrides, prev
     return PreviewAction()
 
 
+class PreviewTooltip(NamedTuple):
+    x: int
+    y: int
+    text: str
+
+
+def _preview_tooltip(canvas, pointer, origin):
+    """Read only the current scene's painted ownership, in terminal cells."""
+    if pointer is None:
+        return None
+    x, y = pointer[0]-origin[0], pointer[1]-origin[1]
+    if not (0 <= x < canvas.width and 0 <= y < canvas.height):
+        return None
+    owner = canvas.owners[y][x]
+    name = ACTOR_NAMES.get(owner)
+    # Flyers have painted identities but deliberately have no click reaction.
+    if name is None and owner is not None and owner.startswith('pteranodon:'):
+        name = 'Pteranodon'
+    if name is None:
+        return None
+    text = f' {name} '
+    if len(text) > canvas.width:
+        text = name if len(name) <= canvas.width else (
+            name[:canvas.width-3]+'...' if canvas.width > 3 else name[:canvas.width])
+    left = max(0, min(x+1, canvas.width-len(text)))
+    row = y-1 if y > 0 else min(1, canvas.height-1)
+    return PreviewTooltip(left, row, text)
+
+
+def _preview_frame(canvas, background, origin, pointer):
+    frame = canvas.ansi(background, origin)
+    tooltip = _preview_tooltip(canvas, pointer, origin)
+    if tooltip is not None:
+        # A display-only overlay: never write into chars/colors/owners. Clicks
+        # and the next hover still see the undecorated scene under this label.
+        frame += (f'\x1b[{tooltip.y+origin[1]+1};{tooltip.x+origin[0]+1}H'
+                  '\x1b[1;38;2;246;240;220;48;2;22;29;40m'
+                  f'{tooltip.text}\x1b[0m')
+    return frame
+
+
 def animate(args, config, overrides, document):
     world = World(config)
     pending_test = args.test_event
@@ -238,6 +279,7 @@ def animate(args, config, overrides, document):
     dismissed = False
     frames = 0
     last_canvas = None
+    pointer = None
     redraw = True
     preview_overrides = {}
     previous_size = None
@@ -256,6 +298,7 @@ def animate(args, config, overrides, document):
                 suspending = False
                 last = time.monotonic_ns()
                 baseline = None
+                pointer = None
                 previous_size = None
                 redraw = True
                 continue
@@ -304,7 +347,10 @@ def animate(args, config, overrides, document):
                 pose = world.snapshot()
                 canvas.camera = pose['camera']
                 draw_scene(canvas, pose, world.config)
-                sys.stdout.write(canvas.ansi(background, (left, top)))
+                if args.preview:
+                    sys.stdout.write(_preview_frame(canvas, background, (left, top), pointer))
+                else:
+                    sys.stdout.write(canvas.ansi(background, (left, top)))
                 sys.stdout.flush()
                 last_canvas = canvas
                 redraw = False
@@ -328,6 +374,9 @@ def animate(args, config, overrides, document):
                     dismissed = True
                     stopping = True
                 else:
+                    if kind in ('motion', 'click') and pointer != payload:
+                        pointer = payload
+                        redraw = True
                     action = _apply_preview_event(
                         world, (kind, payload), last_canvas, (left, top),
                         document, overrides, preview_overrides, args.test_event)

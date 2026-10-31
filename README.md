@@ -7,12 +7,12 @@
 <h1 align="center">A prehistoric valley. A real terminal.</h1>
 
 <p align="center">
-  Interactive, truecolor ASCII dinosaurs for <strong>Omarchy Quattro</strong>.<br>
-  Ordinary characters. A little wilderness between things.
+  A kid-friendly, interactive ASCII dinosaur valley for <strong>Omarchy Quattro</strong>.<br>
+  Learn the names. Hear them spoken. Find out what fossils can tell us.
 </p>
 
 <p align="center">
-  <a href="https://daileng.github.io/Omarchasaurus/"><strong>Website</strong></a>
+  <a href="https://daileng.github.io/Omarchasaurus/#field-guide"><strong>Explore &amp; Hear Names</strong></a>
   &nbsp; / &nbsp;
   <a href="#install">Get Started</a>
   &nbsp; / &nbsp;
@@ -32,7 +32,7 @@
 
 <p align="center"><sub>Actual production World/Canvas snapshot, rendered to PNG. No image protocol or separate GPU scene.</sub></p>
 
-**A development preview, not a finished screensaver service.** Manual **Enter Immersion** and screensaver-style **Start** are available. Automatic idle activation and sound are **off and not implemented**. Marketplace submission/approval is separate from this repository; no marketplace verification is claimed.
+**A development preview, not a finished screensaver service.** Manual **Enter Immersion** and screensaver-style **Start** are available. Automatic idle activation and in-screensaver sound are **off and not implemented**; the website's spoken names are a separate learning feature. Marketplace submission/approval is separate from this repository; no marketplace verification is claimed.
 
 ## In the valley
 
@@ -40,9 +40,34 @@
 | --- | --- |
 | **Character, not pixels** | An always-present Brachiosaurus among mountains, a volcano, tall trees, a lake, a nest and clouds—all drawn with ordinary terminal characters. |
 | **Room for company** | T. rex, Triceratops, Stegosaurus, Ankylosaurus, Parasaurolophus and Diplodocus, plus the marine reptile Plesiosaurus and the pterosaur Pteranodon. Arrivals respect the animal ceiling. |
-| **Small encounters** | Click for articulated dinosaur reactions, a sky meteor or a lake leap. Rare hatching, flock, shower, rainbow and volcano events unfold over active session time. |
+| **Small encounters** | Hover to discover an animal's name, then click for articulated reactions, a sky meteor or a lake leap. Rare hatching, flock, shower, rainbow and volcano events unfold over active session time. |
 | **Your composition** | Morning and Dusk palettes; independent scenery, animal and crowding choices; reduced motion. Randomize stages a valley for review—it never autosaves. |
 | **An intentional pause** | Launch manually on the focused output or Start on every active output. Surface stops only the plugin's owned sessions. |
+
+## Young explorers: start here
+
+**[Open the free field guide](https://daileng.github.io/Omarchasaurus/#field-guide)** to meet all nine animals, hear their names and follow museum links. You do **not** need Linux or an installation to read and listen on the website. Ask a grown-up to help with the terminal installation below.
+
+| Animal | How to spot it | Explore |
+| --- | --- | --- |
+| **Brachiosaurus** | High shoulders, long front legs and a long neck for reaching plants. | [Read and hear its name](https://daileng.github.io/Omarchasaurus/#brachiosaurus) |
+| **Tyrannosaurus rex** | A big-headed meat-eater with two small fingers on each hand. “T. rex” is its short name. | [Read and hear its name](https://daileng.github.io/Omarchasaurus/#tyrannosaurus-rex) |
+| **Triceratops** | Three horns and a broad bony frill behind its head; it ate plants. | [Read and hear its name](https://daileng.github.io/Omarchasaurus/#triceratops) |
+| **Stegosaurus** | Plates along its back and spikes on its tail. | [Read and hear its name](https://daileng.github.io/Omarchasaurus/#stegosaurus) |
+| **Ankylosaurus** | Bony armor over its body and a heavy club at the tail's end. | [Read and hear its name](https://daileng.github.io/Omarchasaurus/#ankylosaurus) |
+| **Parasaurolophus** | A hollow, backward-pointing head crest; scientists think it helped with calls and display. | [Read and hear its name](https://daileng.github.io/Omarchasaurus/#parasaurolophus) |
+| **Diplodocus** | A long, low plant-eater with a very long, whip-like tail. | [Read and hear its name](https://daileng.github.io/Omarchasaurus/#diplodocus) |
+| **Plesiosaurus** | A marine reptile with four flippers—not a dinosaur. Real Plesiosaurus swam in the sea, not our pretend lake. | [Read and hear its name](https://daileng.github.io/Omarchasaurus/#plesiosaurus) |
+| **Pteranodon** | A flying reptile called a pterosaur—not a dinosaur or a bird. | [Read and hear its name](https://daileng.github.io/Omarchasaurus/#pteranodon) |
+
+### Keep asking questions
+
+- **[AMNH OLogy: paleontology for kids](https://www.amnh.org/explore/ology/paleontology)** — short readings, puzzles and activities from the American Museum of Natural History.
+- **[What is paleontology?](https://www.amnh.org/explore/ology/paleontology/what-is-paleontology)** — how scientists study ancient life.
+- **[How does a fossil form?](https://www.amnh.org/explore/ology/ology-cards/028-fossilization)** — a simple explanation of fossilization.
+- **[How do we know what dinosaurs were like?](https://www.nhm.ac.uk/discover/what-can-scientists-learn-about-dinosaurs-and-how.html)** — evidence, clues and questions that are still open, from London's Natural History Museum.
+
+**Our valley is make-believe.** These animals lived in different places and at different times; they did not all meet beside one lake. The colors, weather, egg encounters and playful movements are artistic choices, not a record of exactly how these animals lived. Fossils tell us a lot, but not everything.
 
 ## Requirements
 
@@ -73,6 +98,7 @@ In **Enter Immersion**, use the mouse to explore and the keyboard to adjust the 
 
 | Input | Action |
 | --- | --- |
+| Hover over an animal | Show its name, including calf/juvenile labels, without clicking |
 | Click a dinosaur | Articulated head, jaw or tail reaction |
 | Click an egg or the nest | Hatch one young Brachiosaurus if a slot is free; click again after it leaves |
 | Click open sky | Meteor; at most one active |
@@ -88,6 +114,7 @@ These keys do not save preferences; **N** resets seeded schedules rather than re
 ## Documentation
 
 - **Shape a valley:** [Settings](#settings), [Randomize Valley](#randomize-valley), [interaction and events](#interaction-and-events).
+- **Learn together:** [Young explorers](#young-explorers-start-here), [museum resources](#keep-asking-questions), and the [spoken-name field guide](https://daileng.github.io/Omarchasaurus/#field-guide).
 - **Explore on demand:** [Try an event without waiting](#try-an-event-without-waiting).
 - **Maintain an installation:** [Updating to 0.3.0 and the one-time 0.1.0 migration](#updating--030), [removing](#removing).
 - **Understand the boundaries:** [Files, privacy and security](#files-privacy-and-security-boundaries), [development checks and release policy](#development-checks), [license](#license).
@@ -168,6 +195,18 @@ The final command reports `0.3.0`. After a normal updater rescan, this migration
 
 Closing/reopening the control room preserves staged choices and in-flight Apply/Randomize work while its service stays loaded. A release reload discards unsaved staged choices and may atomically cancel finite helpers. Standalone instances keep their loaded release until quit.
 
+### Current development-preview changes
+
+Diplodocus has a continuously tapered tail with fixed-length articulated links, a firm slightly raised base and a fine, more flexible tip. A more distinct resting curve and broader, slow idle swishes keep the motion legible at ordinary terminal sizes. A new resident session begins swishing in its first few seconds, then alternates eight-second swishes with quiet stretches on a twenty-second motion-clock cycle. Walking and click reactions bend the chain without stretching it or moving the torso. Pause freezes the swish, and reduced motion attenuates it. Animal limits, visit timing and viewport-safe bounds are unchanged; no new setting is required.
+
+Parasaurolophus now walks on four grounded limbs, with slimmer forelegs, a lower neck profile, a sloping back and a shallower backward-pointing adult crest. Juveniles have shorter, lower crests. The stance and age distinction follow the [Natural History Museum overview](https://www.nhm.ac.uk/discover/dino-directory/parasaurolophus.html) and [juvenile fossil study](https://pmc.ncbi.nlm.nih.gov/articles/PMC3807589/); this remains stylized terminal artwork, not a scientific reconstruction. Drinking and individual click reactions keep the skull and crest rigid and leave the supporting body unchanged.
+
+The Triceratops calf maintains a clear following gap behind the adult's tail. Both stop and resume together; the calf rests with a neutral head rather than approaching the adult's hindquarters. Independent clicks, group-safe offscreen entry/exit and animal ceilings are unchanged.
+
+This Python-only source change is picked up by a **new** immersion/screensaver session. An already-running terminal retains its loaded renderer until it exits; no tray or desktop-shell restart is needed.
+
+Hover names are available only in interactive immersion. They follow the animal pixels under the pointer, work while paused, and do not change click targets or saved preferences. Ordinary screensaver-style Start still dismisses on input rather than showing learning labels. The native controller remains version0.3.0; Python-only artwork and hover changes on current `main` do not require a QML cache migration.
+
 ### 0.3.0 interaction and artwork changes
 
 Egg/nest clicks now trigger a repeatable hatchling encounter with a timed offscreen departure, without changing automatic hatch deadlines or taking an occupied animal seat. The hatchling stays in the foreground rather than disappearing behind its parent.
@@ -224,9 +263,11 @@ The public repository excludes historical desktop captures, development-agent in
 
 ## Website
 
-**[Visit the project website](https://daileng.github.io/Omarchasaurus/)** for the visual field guide, Morning/Dusk artwork viewer and installation overview.
+**[Visit the project website](https://daileng.github.io/Omarchasaurus/)** for the age-friendly nine-animal field guide, name pronunciations, museum resources, Morning/Dusk artwork viewer and installation overview.
 
 The website is plain HTML, CSS and JavaScript in `site/`, with no build step, external fonts, analytics or browser storage. Its artwork comes from the production character canvas; the palette viewer is not a browser port of the simulation.
+
+Name clips are self-hosted and play only when requested; one clip plays at a time. Visible syllable guides and direct audio-file links remain available without JavaScript. These are readings of animal names, **not dinosaur calls**; the terminal plugin itself remains silent. Browser playback fetches the selected clip from this GitHub Pages site, not a third-party speech API. Audio provenance and licenses are listed in [pronunciation credits](site/assets/pronunciation/ATTRIBUTION.md). Linked museums are independent websites with their own accessibility and privacy practices.
 
 Preview locally:
 

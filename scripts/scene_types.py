@@ -74,8 +74,6 @@ class TriceratopsPose(HerbivorePose, _TriceratopsOptions):
     scale: float
     foot_y: float
     juvenile: bool
-    calf_near: float
-    nuzzle: float
 
 
 class AnkylosaurusPose(WalkingPose):
@@ -118,6 +116,7 @@ class DiplodocusPose(WalkingPose):
     depth: float
     drink: float
     look: float
+    tail_time: float
     state: str
     generation: int
 

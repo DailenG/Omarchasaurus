@@ -89,3 +89,70 @@ if (copyButton && installCommand && copyStatus) {
     }
   });
 }
+
+const pronunciationStatus = document.getElementById("pronunciation-status");
+const pronunciationButtons = document.querySelectorAll("button[data-pronounce][data-pronounce-name]");
+
+if (pronunciationStatus && pronunciationButtons.length && typeof Audio === "function") {
+  const player = document.createElement("audio");
+  player.id = "pronunciation-player";
+  player.preload = "none";
+  player.hidden = true;
+  player.setAttribute("aria-hidden", "true");
+  document.body.append(player);
+
+  let activeButton = null;
+  let playbackRequest = 0;
+
+  function stopPronunciation(message) {
+    ++playbackRequest;
+    player.pause();
+    player.removeAttribute("src");
+    player.load();
+    if (activeButton) {
+      activeButton.setAttribute("aria-pressed", "false");
+      activeButton.setAttribute("aria-label", `Hear ${activeButton.dataset.pronounceName}`);
+      activeButton.textContent = "Hear name";
+      activeButton = null;
+    }
+    pronunciationStatus.textContent = message;
+  }
+
+  player.addEventListener("ended", () => {
+    if (!activeButton || !player.ended) return;
+    stopPronunciation(`Finished ${activeButton.dataset.pronounceName}. Choose another name or hear it again.`);
+  });
+  player.addEventListener("error", () => {
+    if (!activeButton || !player.error) return;
+    stopPronunciation("The clip could not play. Try its audio-file link, or use the written pronunciation.");
+  });
+
+  for (const button of pronunciationButtons) {
+    button.hidden = false;
+    button.setAttribute("aria-pressed", "false");
+    button.setAttribute("aria-label", `Hear ${button.dataset.pronounceName}`);
+    button.addEventListener("click", async () => {
+      const name = button.dataset.pronounceName;
+      if (activeButton === button) {
+        stopPronunciation(`Stopped ${name}.`);
+        return;
+      }
+      stopPronunciation(`Loading ${name}…`);
+      const request = playbackRequest;
+      activeButton = button;
+      button.setAttribute("aria-pressed", "true");
+      button.setAttribute("aria-label", `Stop pronunciation of ${name}`);
+      button.textContent = "Stop audio";
+      player.src = `./assets/pronunciation/${button.dataset.pronounce}.mp3`;
+      try {
+        await player.play();
+        if (request === playbackRequest) pronunciationStatus.textContent = `Playing ${name}.`;
+      } catch {
+        if (request === playbackRequest) {
+          stopPronunciation("The clip could not play. Try its audio-file link, or use the written pronunciation.");
+        }
+      }
+    });
+  }
+  window.addEventListener("pagehide", () => stopPronunciation("Choose a name to hear."));
+}

@@ -1,4 +1,6 @@
 import fcntl
+from contextlib import ExitStack
+from io import StringIO
 import json
 import math
 import os
@@ -14,13 +16,15 @@ import unittest
 import termios
 import time
 from unittest.mock import patch
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'scripts'))
-from canvas import Canvas
-from engine import World
+from canvas import BACKGROUNDS, Canvas
+from engine import ACTOR_NAMES, World
 from configuration import load_settings, settings
-from dinosaurs import Input, _apply_preview_event, session_alive
+from dinosaurs import (Input, _apply_preview_event, _preview_frame,
+                       _preview_tooltip, animate, session_alive)
 from character_art import _brachiosaurus_pose, _trex_pose, draw_scene
 from hatching import NEST_DEPTH, egg_offsets
 from layout import FOCAL_OFFSET_X, METEOR_DEPTH, WATER_DEPTH
@@ -204,6 +208,214 @@ class TerminalBehavior(unittest.TestCase):
                     process.communicate()
                 os.close(master)
                 os.close(slave)
+
+
+class PreviewHover(unittest.TestCase):
+    def test_painted_owners_keep_species_and_young_names(self):
+        names = {
+            'brachiosaurus': 'Brachiosaurus',
+            'brachiosaurus:young': 'Young Brachiosaurus',
+            'triceratops:calf': 'Triceratops calf',
+            'parasaurolophus:1:3': 'Parasaurolophus juvenile',
+            'pteranodon:0': 'Pteranodon',
+            'pteranodon:flock:4': 'Pteranodon',
+        }
+        for owner, name in names.items():
+            with self.subTest(owner=owner):
+                canvas = Canvas(80, 24)
+                # Opaque blank interiors are animal pixels, not just strokes.
+                canvas.put(12, 8, ' ', (50, 100, 80), owner=owner)
+                label = _preview_tooltip(canvas, (19, 11), (7, 3))
+                self.assertEqual(label.text.strip(), name)
+                self.assertEqual(label.y, 7)
+                frame = _preview_frame(canvas, BACKGROUNDS['morning'], (7, 3), (19, 11))
+                self.assertIn(f'\x1b[{label.y+4};{label.x+8}H', frame)
+                self.assertIn(name, frame)
+
+    def test_background_occlusion_and_unidentified_water_animal_have_no_name(self):
+        canvas = Canvas(80, 24)
+        for owner in (None, 'sky', 'water', 'nest', 'water_jump'):
+            canvas.put(5, 5, '.', (80, 100, 80), owner=owner)
+            self.assertIsNone(_preview_tooltip(canvas, (5, 5), (0, 0)), owner)
+        canvas.put(4, 5, 'x', (80, 100, 80), owner='trex')
+        canvas.put(6, 5, 'x', (80, 100, 80), owner='trex')
+        # The hole inside an animal's rectangular bounds is not its pixel.
+        self.assertIsNone(_preview_tooltip(canvas, (5, 5), (0, 0)))
+        canvas.put(4, 5, '.', (80, 100, 80))
+        self.assertIsNone(_preview_tooltip(canvas, (4, 5), (0, 0)))
+
+    def test_edges_tiny_grids_and_letterbox_offsets_stay_visible(self):
+        for width, height in ((80, 24), (24, 3), (8, 2), (3, 1), (1, 1)):
+            for x, y in ((0, 0), (width-1, 0), (0, height-1), (width-1, height-1)):
+                with self.subTest(size=(width, height), pointer=(x, y)):
+                    canvas = Canvas(width, height)
+                    canvas.put(x, y, 'o', (50, 100, 80), owner='parasaurolophus:0:1')
+                    label = _preview_tooltip(canvas, (x+9, y+4), (9, 4))
+                    self.assertTrue(label.text.strip())
+                    self.assertGreaterEqual(label.x, 0)
+                    self.assertLessEqual(label.x+len(label.text), width)
+                    self.assertGreaterEqual(label.y, 0)
+                    self.assertLess(label.y, height)
+                    if height > 1:
+                        self.assertNotEqual(label.y, y)
+                    for outside in ((8, y+4), (x+9, 3), (width+9, y+4), (x+9, height+4)):
+                        self.assertIsNone(_preview_tooltip(canvas, outside, (9, 4)))
+                    self.assertIsNone(_preview_tooltip(canvas, None, (9, 4)))
+
+    def test_current_frame_recomputes_after_movement_culling_and_resize(self):
+        pointer, origin = (12, 7), (7, 3)
+        canvas = Canvas(80, 24)
+        canvas.put(5, 4, 'o', (50, 100, 80), owner='triceratops:calf')
+        self.assertIn('Triceratops calf', _preview_frame(canvas, BACKGROUNDS['morning'], origin, pointer))
+        canvas.put(5, 4, '.', (50, 100, 80))
+        canvas.put(9, 4, 'o', (50, 100, 80), owner='triceratops:calf')
+        self.assertIsNone(_preview_tooltip(canvas, pointer, origin))
+        self.assertIn('Triceratops calf', _preview_tooltip(canvas, (16, 7), origin).text)
+        # A newly rasterized, culled scene cannot retain the old label.
+        self.assertIsNone(_preview_tooltip(Canvas(80, 24), (16, 7), origin))
+        resized = Canvas(3, 2)
+        self.assertIsNone(_preview_tooltip(resized, pointer, origin))
+        resized.put(1, 1, 'o', (50, 100, 80), owner='brachiosaurus')
+        self.assertIsNotNone(_preview_tooltip(resized, (21, 11), (20, 10)))
+
+    def test_real_scene_uses_current_visible_pixels_not_animal_bounds(self):
+        world = World(settings(), elapsed_ns=12_000_000_000)
+        canvas = Canvas(160, 60)
+        world.set_viewport(canvas.world_bounds)
+        pose = world.snapshot()
+        canvas.camera = pose['camera']
+        draw_scene(canvas, pose, world.config)
+        cells = [(x, y) for y, row in enumerate(canvas.owners)
+                 for x, owner in enumerate(row) if owner == 'brachiosaurus']
+        self.assertTrue(cells)
+        pointer = cells[len(cells)//2]
+        self.assertEqual(_preview_tooltip(canvas, pointer, (0, 0)).text.strip(), 'Brachiosaurus')
+        x, y, width, height = canvas.bounds('brachiosaurus')
+        holes = [(px, py) for py in range(y, y+height) for px in range(x, x+width)
+                 if canvas.owners[py][px] not in ACTOR_NAMES
+                 and not (canvas.owners[py][px] or '').startswith('pteranodon:')]
+        self.assertTrue(holes)
+        for hole in holes:
+            self.assertIsNone(_preview_tooltip(canvas, hole, (0, 0)))
+        decorated = _preview_frame(canvas, BACKGROUNDS['morning'], (0, 0), pointer)
+        self.assertIn('Brachiosaurus', decorated)
+        self.assertEqual(world.snapshot(), pose)
+
+    def test_overlay_preserves_scene_ownership_admission_and_underlying_clicks(self):
+        config = settings({'animals': {name: False for name in settings()['animals']},
+                           'population': {'maxVisible': 2}})
+        world = World(config)
+        canvas = Canvas(160, 48)
+        canvas.depth = WATER_DEPTH
+        water_x, water_y = map(round, canvas.project(65, 42))
+        anchor = (water_x - 1, water_y + 1)
+        canvas.put(*anchor, 'x', (50, 100, 80), owner='brachiosaurus')
+        label = _preview_tooltip(canvas, anchor, (0, 0))
+        canvas.put(label.x, label.y, '.', (50, 100, 80), owner='water')
+        original = tuple(tuple(tuple(row) for row in grid)
+                         for grid in (canvas.chars, canvas.colors, canvas.owners))
+        pose, cast = world.snapshot(), tuple(world.cast.members)
+        decorated = _preview_frame(canvas, BACKGROUNDS['morning'], (0, 0), anchor)
+        self.assertIn('Brachiosaurus', decorated)
+        self.assertEqual(original, tuple(tuple(tuple(row) for row in grid)
+                                       for grid in (canvas.chars, canvas.colors, canvas.owners)))
+        self.assertEqual(world.snapshot(), pose)
+        self.assertEqual(tuple(world.cast.members), cast)
+        self.assertIsNone(world.water_jump)
+        action = _apply_preview_event(
+            world, ('click', (label.x, label.y)), canvas, (0, 0), config, {}, {})
+        self.assertIsNotNone(world.water_jump)
+        self.assertTrue(action.redraw)
+        _apply_preview_event(world, ('click', anchor), canvas, (0, 0), config, {}, {})
+        self.assertIn('brachiosaurus', world.reactions)
+        canvas.put(*anchor, 'v', (50, 100, 80), owner='pteranodon:0')
+        self.assertIn('Pteranodon', _preview_frame(canvas, BACKGROUNDS['morning'], (0, 0), anchor))
+        action = _apply_preview_event(
+            world, ('click', anchor), canvas, (0, 0), config, {}, {})
+        self.assertFalse(action.redraw)
+        self.assertIsNone(action.diagnostic)
+
+    def run_paused_loop(self, events, *, preview=True, motion_exit=True, sizes=None, expected_reads=None):
+        world = World(settings({'integration': {'exitOnPointerMotion': motion_exit}}))
+        world.paused = True
+        clock = [0.0]
+        output, rendered, poses = StringIO(), [], []
+        pending = iter(events)
+        received = []
+        current = [b'']
+        dimensions = iter(sizes or [(80, 24)]*len(events))
+
+        def ready(*_args):
+            current[0] = next(pending)
+            received.append(current[0])
+            clock[0] += .25
+            return ([] if current[0] is None else [sys.stdin], [], [])
+
+        def draw(canvas, pose, _config):
+            poses.append(pose)
+            canvas.put(2, 2, 'o', (50, 100, 80), owner='brachiosaurus:young')
+
+        def frame(*args):
+            result = _preview_frame(*args)
+            rendered.append(result)
+            return result
+
+        args = SimpleNamespace(test_event=None, duration=None, session_dir=None,
+                               config=Path('/unused-hover-test-config'), preview=preview, fps=24)
+        with ExitStack() as stack:
+            replacements = {
+                'World': lambda _config: world,
+                'Terminal.enter': lambda _self: None,
+                'Terminal.restore': lambda _self: None,
+                'time.monotonic': lambda: clock[0],
+                'time.monotonic_ns': lambda: int(clock[0]*1_000_000_000),
+                'dimensions': lambda: next(dimensions),
+                'cell_aspect': lambda: 2.0,
+                'shutil.get_terminal_size': lambda _fallback: os.terminal_size((81, 25)),
+                'select.select': ready,
+                'os.read': lambda *_args: current[0],
+                'sys.stdout': output,
+                'sys.stderr': StringIO(),
+                'draw_scene': draw,
+                '_preview_frame': frame,
+                'load_document': lambda _path: world.config,
+            }
+            for target, replacement in replacements.items():
+                stack.enter_context(patch('dinosaurs.'+target, replacement))
+            dismissal = stack.enter_context(patch('dinosaurs.notify_dismissal'))
+            self.assertEqual(animate(args, world.config, {}, world.config), 0)
+        self.assertEqual(len(received), len(events) if expected_reads is None else expected_reads)
+        self.assertEqual((world.tick, world.elapsed_ns), (0, 0))
+        if sizes is None:
+            self.assertTrue(all(pose == poses[0] for pose in poses))
+            self.assertEqual(world.snapshot(), poses[-1])
+        return rendered, output.getvalue(), dismissal
+
+    def test_motion_redraws_paused_preview_and_clears_after_background_and_resize(self):
+        motion = b'\x1b[<35;3;3M'
+        rendered, _output, dismissal = self.run_paused_loop([
+            motion, b'\x1b[<35;20;20M', motion, b'q'])
+        self.assertEqual(len(rendered), 4)
+        self.assertNotIn('Young Brachiosaurus', rendered[0])
+        self.assertIn('Young Brachiosaurus', rendered[1])
+        self.assertNotIn('Young Brachiosaurus', rendered[2])
+        self.assertIn('Young Brachiosaurus', rendered[3])
+        dismissal.assert_not_called()
+        rendered, _output, _dismissal = self.run_paused_loop(
+            [motion, None, b'q'], sizes=[(80, 24), (80, 24), (2, 1)])
+        self.assertIn('Young Brachiosaurus', rendered[1])
+        self.assertNotIn('Young Brachiosaurus', rendered[2])
+
+    def test_ordinary_start_retains_arming_motion_threshold_and_key_dismissal(self):
+        events = [b'\x1b[<35;1;1M', b'\x1b[<0;3;3M',
+                  b'\x1b[<35;2;1M', b'\x1b[<35;4;1M', b'q']
+        rendered, _output, dismissal = self.run_paused_loop(events, preview=False, expected_reads=4)
+        self.assertFalse(rendered)
+        dismissal.assert_called_once_with(None)
+        rendered, _output, dismissal = self.run_paused_loop(
+            events, preview=False, motion_exit=False)
+        self.assertFalse(rendered)
+        dismissal.assert_called_once_with(None)
 
 
 class PreviewInteractions(unittest.TestCase):
