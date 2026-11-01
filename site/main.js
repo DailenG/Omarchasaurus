@@ -90,18 +90,76 @@ if (copyButton && installCommand && copyStatus) {
   });
 }
 
-const pronunciationPlayers = document.querySelectorAll("audio.pronunciation-player");
+const pronunciationControls = [];
+let activePronunciation = null;
 
-for (const player of pronunciationPlayers) {
-  player.addEventListener("play", () => {
-    // A clip may have been paused before its queued play event is delivered.
-    if (player.paused) return;
-    for (const other of pronunciationPlayers) {
-      if (other !== player) other.pause();
+function labelPronunciation(control, playing) {
+  const action = playing ? "Pause" : "Play";
+  control.button.textContent = action;
+  control.button.setAttribute("aria-label", `${action} ${control.player.getAttribute("aria-label")}`);
+}
+
+function pausePronunciation(control) {
+  control.request += 1;
+  control.player.pause();
+  if (activePronunciation === control) activePronunciation = null;
+  labelPronunciation(control, false);
+}
+
+function pronunciationError(control) {
+  pausePronunciation(control);
+  control.status.textContent = "Audio unavailable. Press Play to try again.";
+}
+
+for (const player of document.querySelectorAll("audio.pronunciation-player")) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "pronunciation-button";
+  button.setAttribute("aria-describedby", "pronunciation-help");
+  const status = document.createElement("p");
+  status.className = "pronunciation-status";
+  status.setAttribute("role", "status");
+  const control = { player, button, status, request: 0 };
+  pronunciationControls.push(control);
+  labelPronunciation(control, false);
+
+  button.addEventListener("click", async () => {
+    status.textContent = "";
+    if (activePronunciation === control) {
+      pausePronunciation(control);
+      return;
+    }
+    for (const other of pronunciationControls) pausePronunciation(other);
+    if (player.error) player.load();
+    activePronunciation = control;
+    const request = ++control.request;
+    labelPronunciation(control, true);
+    try {
+      await player.play();
+    } catch {
+      // Switching, pausing or leaving the page invalidates the pending play.
+      if (request !== control.request || activePronunciation !== control) return;
+      pronunciationError(control);
     }
   });
+  player.addEventListener("play", () => {
+    if (activePronunciation !== control) player.pause();
+  });
+  player.addEventListener("pause", () => {
+    if (player.paused && activePronunciation === control) pausePronunciation(control);
+  });
+  player.addEventListener("ended", () => {
+    if (player.ended) pausePronunciation(control);
+  });
+  player.addEventListener("error", () => {
+    if (player.error && activePronunciation === control) pronunciationError(control);
+  });
+
+  player.before(button, status);
+  player.controls = false;
+  player.hidden = true;
 }
 
 window.addEventListener("pagehide", () => {
-  for (const player of pronunciationPlayers) player.pause();
+  for (const control of pronunciationControls) pausePronunciation(control);
 });

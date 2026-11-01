@@ -23,8 +23,8 @@
   <meta name="twitter:image" content="https://daileng.github.io/Omarchasaurus/assets/social.png">
   <meta name="twitter:image:alt" content="Omarchasaurus, an ASCII dinosaur valley for Omarchy Quattro">
   <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
-  <link rel="stylesheet" href="./styles.css?v=inline-players">
-  <script src="./main.js?v=native-terminal-10pt" defer></script>
+  <link rel="stylesheet" href="./styles.css?v=compact-illustrations">
+  <script src="./main.js?v=compact-illustrations" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -69,7 +69,7 @@
       <aside class="make-believe" aria-labelledby="make-believe-title">
         <p class="eyebrow">A pretend place. Real curiosity.</p>
         <h3 id="make-believe-title">This valley has a little time-travel magic.</h3>
-        <p>These animals did not all live together: they came from different times and places, millions of years apart. Plesiosaurus belonged in the sea, not our little lake! The colors, friendly reactions and family scenes are artistic choices, not a record of exactly how these animals looked or behaved. The portraits below are original terminal-character art, not fossil photos or scientific reconstructions.</p>
+        <p>These animals did not all live together: they came from different times and places, millions of years apart. Plesiosaurus belonged in the sea, not our little lake! The colors, friendly reactions and family scenes are artistic choices, not a record of exactly how these animals looked or behaved. The terminal portraits and optional illustrations are original artistic interpretations, not fossil photos or scientific reconstructions.</p>
       </aside>
       <nav class="guide-jump" aria-label="Choose an animal">
         <a href="#brachiosaurus">Brachiosaurus</a>
@@ -86,12 +86,18 @@
         <p><strong>Say it in small steps.</strong> Hyphens break names into syllables; CAPITAL letters show the stronger beats. Accents and accepted pronunciations vary. These are friendly English readings, not the only right way.</p>
         <p>The players say the animal’s <em>name</em> with a synthetic narrator created using ElevenLabs, not an animal call. There are no real recordings of these extinct animals. Nothing plays automatically. The players work without JavaScript, too. <a href="https://github.com/DailenG/Omarchasaurus/blob/main/site/assets/pronunciation/ATTRIBUTION.md">Read how the name audio was made.</a></p>
       </div>
-      <p class="pronunciation-instructions">Press Play beneath an animal’s name to listen. Pause or replay it right here—you will stay on this page.</p>
+      <p class="pronunciation-instructions">Click or tap a portrait to see its illustration, then again to return to terminal art. Use Play/Pause beneath the name to listen. You will stay on this page.</p>
       <div class="guide-cards">
         <article class="animal-card" id="brachiosaurus" aria-labelledby="brachiosaurus-title">
           <div class="animal-card-top"><span class="eyebrow">01 / Treetop browser</span><span class="animal-kind">Dinosaur</span></div>
           <h3 id="brachiosaurus-title">Brachiosaurus</h3>
-          <img class="animal-portrait" src="./assets/field-guide/brachiosaurus.png" width="640" height="360" loading="lazy" alt="Brachiosaurus drawn with terminal characters">
+          <details class="portrait-switch">
+            <summary aria-label="Switch Brachiosaurus portrait between terminal art and illustration">
+              <img class="animal-portrait" src="./assets/field-guide/brachiosaurus.png" width="640" height="360" loading="lazy" alt="Brachiosaurus drawn with terminal characters">
+              <span class="portrait-caption"><span class="portrait-show">See illustration</span><span class="portrait-hide">Back to terminal art</span></span>
+            </summary>
+            <img class="animal-portrait portrait-illustration" src="./assets/field-guide/illustrations/brachiosaurus.svg" width="640" height="360" loading="lazy" alt="Artistic illustration of Brachiosaurus with its tall neck and high shoulders">
+          </details>
           <p class="phonetic"><span class="phonetic-label">Say it</span> BRAK-ee-oh-sore-us</p>
           <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/brachiosaurus.mp3?v=bella-20261101" aria-label="Pronunciation of Brachiosaurus" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
           <dl class="animal-stats">
@@ -109,7 +115,13 @@
         <article class="animal-card" id="tyrannosaurus-rex" aria-labelledby="tyrannosaurus-rex-title">
           <div class="animal-card-top"><span class="eyebrow">02 / Mighty jaws</span><span class="animal-kind">Dinosaur</span></div>
           <h3 id="tyrannosaurus-rex-title">Tyrannosaurus rex</h3>
-          <img class="animal-portrait" src="./assets/field-guide/tyrannosaurus-rex.png" width="640" height="360" loading="lazy" alt="Tyrannosaurus rex drawn with terminal characters">
+          <details class="portrait-switch">
+            <summary aria-label="Switch Tyrannosaurus rex portrait between terminal art and illustration">
+              <img class="animal-portrait" src="./assets/field-guide/tyrannosaurus-rex.png" width="640" height="360" loading="lazy" alt="Tyrannosaurus rex drawn with terminal characters">
+              <span class="portrait-caption"><span class="portrait-show">See illustration</span><span class="portrait-hide">Back to terminal art</span></span>
+            </summary>
+            <img class="animal-portrait portrait-illustration" src="./assets/field-guide/illustrations/tyrannosaurus-rex.svg" width="640" height="360" loading="lazy" alt="Artistic illustration of Tyrannosaurus rex with a large head and small two-fingered arms">
+          </details>
           <p class="phonetic"><span class="phonetic-label">Say it</span> tie-RAN-oh-sore-us REKS</p>
           <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/tyrannosaurus-rex.mp3?v=bella-20261101" aria-label="Pronunciation of Tyrannosaurus rex" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
           <dl class="animal-stats">
@@ -127,7 +139,13 @@
         <article class="animal-card" id="triceratops" aria-labelledby="triceratops-title">
           <div class="animal-card-top"><span class="eyebrow">03 / Three-horned face</span><span class="animal-kind">Dinosaur</span></div>
           <h3 id="triceratops-title">Triceratops</h3>
-          <img class="animal-portrait" src="./assets/field-guide/triceratops.png" width="640" height="360" loading="lazy" alt="Triceratops drawn with terminal characters">
+          <details class="portrait-switch">
+            <summary aria-label="Switch Triceratops portrait between terminal art and illustration">
+              <img class="animal-portrait" src="./assets/field-guide/triceratops.png" width="640" height="360" loading="lazy" alt="Triceratops drawn with terminal characters">
+              <span class="portrait-caption"><span class="portrait-show">See illustration</span><span class="portrait-hide">Back to terminal art</span></span>
+            </summary>
+            <img class="animal-portrait portrait-illustration" src="./assets/field-guide/illustrations/triceratops.svg" width="640" height="360" loading="lazy" alt="Artistic illustration of Triceratops with a broad frill and three horns">
+          </details>
           <p class="phonetic"><span class="phonetic-label">Say it</span> try-SERR-uh-tops</p>
           <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/triceratops.mp3?v=bella-20261101" aria-label="Pronunciation of Triceratops" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
           <dl class="animal-stats">
@@ -145,7 +163,13 @@
         <article class="animal-card" id="stegosaurus" aria-labelledby="stegosaurus-title">
           <div class="animal-card-top"><span class="eyebrow">04 / A skyline of plates</span><span class="animal-kind">Dinosaur</span></div>
           <h3 id="stegosaurus-title">Stegosaurus</h3>
-          <img class="animal-portrait" src="./assets/field-guide/stegosaurus.png" width="640" height="360" loading="lazy" alt="Stegosaurus drawn with terminal characters">
+          <details class="portrait-switch">
+            <summary aria-label="Switch Stegosaurus portrait between terminal art and illustration">
+              <img class="animal-portrait" src="./assets/field-guide/stegosaurus.png" width="640" height="360" loading="lazy" alt="Stegosaurus drawn with terminal characters">
+              <span class="portrait-caption"><span class="portrait-show">See illustration</span><span class="portrait-hide">Back to terminal art</span></span>
+            </summary>
+            <img class="animal-portrait portrait-illustration" src="./assets/field-guide/illustrations/stegosaurus.svg" width="640" height="360" loading="lazy" alt="Artistic illustration of Stegosaurus with rows of back plates and a spiked tail">
+          </details>
           <p class="phonetic"><span class="phonetic-label">Say it</span> STEG-oh-SORE-us</p>
           <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/stegosaurus.mp3?v=bella-20261101" aria-label="Pronunciation of Stegosaurus" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
           <dl class="animal-stats">
@@ -163,7 +187,13 @@
         <article class="animal-card" id="ankylosaurus" aria-labelledby="ankylosaurus-title">
           <div class="animal-card-top"><span class="eyebrow">05 / Built-in armor</span><span class="animal-kind">Dinosaur</span></div>
           <h3 id="ankylosaurus-title">Ankylosaurus</h3>
-          <img class="animal-portrait" src="./assets/field-guide/ankylosaurus.png" width="640" height="360" loading="lazy" alt="Ankylosaurus drawn with terminal characters">
+          <details class="portrait-switch">
+            <summary aria-label="Switch Ankylosaurus portrait between terminal art and illustration">
+              <img class="animal-portrait" src="./assets/field-guide/ankylosaurus.png" width="640" height="360" loading="lazy" alt="Ankylosaurus drawn with terminal characters">
+              <span class="portrait-caption"><span class="portrait-show">See illustration</span><span class="portrait-hide">Back to terminal art</span></span>
+            </summary>
+            <img class="animal-portrait portrait-illustration" src="./assets/field-guide/illustrations/ankylosaurus.svg" width="640" height="360" loading="lazy" alt="Artistic illustration of Ankylosaurus with low body armor and a heavy tail club">
+          </details>
           <p class="phonetic"><span class="phonetic-label">Say it</span> an-KYE-low-sore-us</p>
           <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/ankylosaurus.mp3?v=bella-20261101" aria-label="Pronunciation of Ankylosaurus" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
           <dl class="animal-stats">
@@ -181,7 +211,13 @@
         <article class="animal-card" id="parasaurolophus" aria-labelledby="parasaurolophus-title">
           <div class="animal-card-top"><span class="eyebrow">06 / A curious crest</span><span class="animal-kind">Dinosaur</span></div>
           <h3 id="parasaurolophus-title">Parasaurolophus</h3>
-          <img class="animal-portrait" src="./assets/field-guide/parasaurolophus.png" width="640" height="360" loading="lazy" alt="Parasaurolophus drawn with terminal characters">
+          <details class="portrait-switch">
+            <summary aria-label="Switch Parasaurolophus portrait between terminal art and illustration">
+              <img class="animal-portrait" src="./assets/field-guide/parasaurolophus.png" width="640" height="360" loading="lazy" alt="Parasaurolophus drawn with terminal characters">
+              <span class="portrait-caption"><span class="portrait-show">See illustration</span><span class="portrait-hide">Back to terminal art</span></span>
+            </summary>
+            <img class="animal-portrait portrait-illustration" src="./assets/field-guide/illustrations/parasaurolophus.svg" width="640" height="360" loading="lazy" alt="Artistic illustration of Parasaurolophus on four limbs with a swept-back tubular crest">
+          </details>
           <p class="phonetic"><span class="phonetic-label">Say it</span> pa-ra-saw-ROL-off-us</p>
           <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/parasaurolophus.mp3?v=bella-20261101" aria-label="Pronunciation of Parasaurolophus" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
           <dl class="animal-stats">
@@ -199,7 +235,13 @@
         <article class="animal-card" id="diplodocus" aria-labelledby="diplodocus-title">
           <div class="animal-card-top"><span class="eyebrow">07 / A very long tail</span><span class="animal-kind">Dinosaur</span></div>
           <h3 id="diplodocus-title">Diplodocus</h3>
-          <img class="animal-portrait" src="./assets/field-guide/diplodocus.png" width="640" height="360" loading="lazy" alt="Diplodocus drawn with terminal characters">
+          <details class="portrait-switch">
+            <summary aria-label="Switch Diplodocus portrait between terminal art and illustration">
+              <img class="animal-portrait" src="./assets/field-guide/diplodocus.png" width="640" height="360" loading="lazy" alt="Diplodocus drawn with terminal characters">
+              <span class="portrait-caption"><span class="portrait-show">See illustration</span><span class="portrait-hide">Back to terminal art</span></span>
+            </summary>
+            <img class="animal-portrait portrait-illustration" src="./assets/field-guide/illustrations/diplodocus.svg" width="640" height="360" loading="lazy" alt="Artistic illustration of Diplodocus with a long low neck and slender whip tail">
+          </details>
           <p class="phonetic"><span class="phonetic-label">Say it</span> DIP-low-DOCK-us</p>
           <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/diplodocus.mp3?v=bella-20261101" aria-label="Pronunciation of Diplodocus" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
           <dl class="animal-stats">
@@ -217,7 +259,13 @@
         <article class="animal-card animal-card-reptile" id="plesiosaurus" aria-labelledby="plesiosaurus-title">
           <div class="animal-card-top"><span class="eyebrow">08 / Ocean swimmer</span><span class="animal-kind">Marine reptile</span></div>
           <h3 id="plesiosaurus-title">Plesiosaurus</h3>
-          <img class="animal-portrait" src="./assets/field-guide/plesiosaurus.png" width="640" height="360" loading="lazy" alt="Plesiosaurus drawn with terminal characters">
+          <details class="portrait-switch">
+            <summary aria-label="Switch Plesiosaurus portrait between terminal art and illustration">
+              <img class="animal-portrait" src="./assets/field-guide/plesiosaurus.png" width="640" height="360" loading="lazy" alt="Plesiosaurus drawn with terminal characters">
+              <span class="portrait-caption"><span class="portrait-show">See illustration</span><span class="portrait-hide">Back to terminal art</span></span>
+            </summary>
+            <img class="animal-portrait portrait-illustration" src="./assets/field-guide/illustrations/plesiosaurus.svg" width="640" height="360" loading="lazy" alt="Artistic illustration of the marine reptile Plesiosaurus with four paddle-shaped flippers">
+          </details>
           <p class="phonetic"><span class="phonetic-label">Say it</span> PLEE-see-uh-SORE-us</p>
           <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/plesiosaurus.mp3?v=bella-20261101" aria-label="Pronunciation of Plesiosaurus" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
           <dl class="animal-stats">
@@ -235,7 +283,13 @@
         <article class="animal-card animal-card-reptile" id="pteranodon" aria-labelledby="pteranodon-title">
           <div class="animal-card-top"><span class="eyebrow">09 / Above the waves</span><span class="animal-kind">Pterosaur</span></div>
           <h3 id="pteranodon-title">Pteranodon</h3>
-          <img class="animal-portrait" src="./assets/field-guide/pteranodon.png" width="640" height="360" loading="lazy" alt="Pteranodon drawn with terminal characters">
+          <details class="portrait-switch">
+            <summary aria-label="Switch Pteranodon portrait between terminal art and illustration">
+              <img class="animal-portrait" src="./assets/field-guide/pteranodon.png" width="640" height="360" loading="lazy" alt="Pteranodon drawn with terminal characters">
+              <span class="portrait-caption"><span class="portrait-show">See illustration</span><span class="portrait-hide">Back to terminal art</span></span>
+            </summary>
+            <img class="animal-portrait portrait-illustration" src="./assets/field-guide/illustrations/pteranodon.svg" width="640" height="360" loading="lazy" alt="Artistic illustration of Pteranodon with membrane wings, a long toothless beak and a head crest">
+          </details>
           <p class="phonetic"><span class="phonetic-label">Say it</span> tuh-RAN-uh-DON</p>
           <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/pteranodon.mp3?v=bella-20261101" aria-label="Pronunciation of Pteranodon" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
           <dl class="animal-stats">
@@ -279,7 +333,7 @@
 
     <section class="faq section-space wrap" aria-labelledby="faq-title"><div class="faq-intro"><p class="eyebrow">05 / Before you wander</p><h2 id="faq-title">A few<br><em>field notes.</em></h2><a class="text-link" href="https://github.com/DailenG/Omarchasaurus#readme">The complete README <span aria-hidden="true">↗</span></a></div><div class="faq-list">
       <details><summary>Is this a game I can play in my browser?<span class="faq-indicator" aria-hidden="true"></span></summary><p>No. This website shows static captures from the actual production canvas. The interactive valley runs in a real terminal as an Omarchy Quattro plugin. The Morning / Dusk viewer here demonstrates the two palettes, not live animation.</p></details>
-      <details><summary>Can I learn the names without installing anything?<span class="faq-indicator" aria-hidden="true"></span></summary><p>Absolutely. The <a href="#field-guide">nine-animal field guide</a> has facts, syllable spellings and museum links. Use the embedded player beneath each name to play, pause or replay its pronunciation without leaving the guide—even without JavaScript. Audio starts only when you choose it. It is generated name speech, not a recording of an animal call, and does not turn on sound in the silent terminal plugin. See the <a href="https://github.com/DailenG/Omarchasaurus/blob/main/site/assets/pronunciation/ATTRIBUTION.md">audio sources and creation notes</a>.</p></details>
+      <details><summary>Can I learn the names without installing anything?<span class="faq-indicator" aria-hidden="true"></span></summary><p>Absolutely. The <a href="#field-guide">nine-animal field guide</a> has facts, syllable spellings and museum links. Click or tap a portrait to switch between terminal art and an illustration; keyboard users can focus it and press Enter or Space. Use the compact Play/Pause button beneath each name to hear it without leaving the guide. Without JavaScript, standard inline audio controls remain available, and the portrait switches still work. Nothing changes on hover or plays automatically. These are artistic interpretations and generated name readings, not fossil photographs or animal calls; the terminal plugin stays silent. See the <a href="https://github.com/DailenG/Omarchasaurus/blob/main/site/assets/pronunciation/ATTRIBUTION.md">audio sources and creation notes</a>.</p></details>
       <details><summary>How do the animal name labels work?<span class="faq-indicator" aria-hidden="true"></span></summary><p>In the terminal’s Enter Immersion mode, hover your mouse over an animal to reveal its name without clicking. Move away to clear the label. These labels belong to interactive immersion, not screensaver-style Start sessions or this website’s static image. If you use a keyboard or touch, browse the <a href="#field-guide">field guide</a> instead.</p></details>
       <details><summary>Will it run on my desktop?<span class="faq-indicator" aria-hidden="true"></span></summary><p>The supported setup is Omarchy Quattro with its Quickshell shell and Hyprland, Python 3.11 or newer, and Ghostty or Kitty. It is not presented as a general Windows, macOS or other Linux desktop app.</p></details>
       <details><summary>Is it an automatic screensaver?<span class="faq-indicator" aria-hidden="true"></span></summary><p>Not yet. In this development preview, you manually choose Enter Immersion or Start All Outputs from the tray. Automatic idle activation and plugin sound are off and not implemented. Ordinary input dismisses screensaver-style Start sessions; immersion is the interactive mode.</p></details>

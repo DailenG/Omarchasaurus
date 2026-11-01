@@ -116,10 +116,23 @@ h1 { font-size: clamp(3.6rem, 6.7vw, 6.75rem); line-height: .99; }
 .animal-kind { color: var(--green); border: 1px solid #586d44; padding: 4px 8px; font: 10px/1.6 var(--mono); }
 .animal-card-reptile .animal-kind { color: var(--amber); border-color: #806440; }
 .animal-card h3 { font-family: var(--serif); font-size: 31px; font-weight: 400; letter-spacing: -.035em; line-height: 1.18; overflow-wrap: anywhere; }
-.animal-portrait { width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: contain; filter: brightness(1.85); margin-top: 20px; background: var(--ink); border: 1px solid var(--line); }
+.portrait-switch { position: relative; margin-top: 20px; }
+.portrait-switch > summary { list-style: none; }
+.portrait-switch > summary::-webkit-details-marker { display: none; }
+.animal-portrait { width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: contain; filter: brightness(1.85); background: var(--ink); border: 1px solid var(--line); }
+.portrait-caption { display: flex; align-items: center; min-height: 44px; color: var(--green); font-size: 12px; text-decoration: underline; text-underline-offset: .25em; }
+.portrait-hide { display: none; }
+.portrait-switch[open] .portrait-show { display: none; }
+.portrait-switch[open] .portrait-hide { display: inline; }
+.portrait-illustration { position: absolute; top: 0; left: 0; filter: none; background: transparent; pointer-events: none; }
+.portrait-switch:not([open]) > .portrait-illustration { display: none; }
 .phonetic { color: var(--bone); font-size: 15px; margin-top: 14px; }
 .phonetic-label { display: block; color: var(--muted); font: 9px/1.8 var(--mono); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 3px; }
 .pronunciation-player { display: block; width: 100%; min-width: 0; height: 44px; margin-block: 12px 22px; color-scheme: dark; }
+.pronunciation-button { align-self: flex-start; min-width: 84px; min-height: 44px; margin-block: 12px 22px; padding: 10px 18px; border: 1px solid var(--green); color: var(--green); background: transparent; font: 12px/1.5 var(--mono); }
+.pronunciation-button:hover { color: var(--ink); background: var(--green); }
+.pronunciation-status { margin: -12px 0 22px; color: var(--amber); font-size: 13px; }
+.pronunciation-status:empty { margin: 0; }
 .animal-stats { margin: 0; padding-block: 16px; border-block: 1px solid var(--line); font-size: 13px; }
 .animal-stats > div { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 10px; }
 .animal-stats > div + div { margin-top: 10px; }
