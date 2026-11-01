@@ -7,13 +7,13 @@ const paletteCaption = document.getElementById("palette-caption");
 const palettes = {
   morning: {
     name: "Morning",
-    source: "./assets/valley-morning.webp?v=1920x1080",
-    alt: "Morning palette production capture of the ASCII dinosaur valley, with character-drawn dinosaurs, mountains, trees, clouds and a lake."
+    source: "./assets/valley-morning.webp?v=native-terminal-10pt",
+    alt: "Morning native terminal screenshot of the ASCII valley, with Brachiosaurus, Tyrannosaurus rex, Stegosaurus and a Parasaurolophus family among mountains, trees and a lake."
   },
   dusk: {
     name: "Dusk",
-    source: "./assets/valley-dusk.webp?v=1920x1080",
-    alt: "Dusk palette production capture of the ASCII dinosaur valley, with character-drawn dinosaurs, mountains, trees, clouds and a lake."
+    source: "./assets/valley-dusk.webp?v=native-terminal-10pt",
+    alt: "Dusk native terminal screenshot of the ASCII valley, with Brachiosaurus, Tyrannosaurus rex, Stegosaurus and a Parasaurolophus family among mountains, trees and a lake."
   }
 };
 
@@ -32,7 +32,7 @@ if (paletteControls && valleyImage && paletteCaption) {
 
     if (key === activePalette) {
       valleyImage.parentElement.removeAttribute("aria-busy");
-      paletteCaption.textContent = `${palette.name} palette / static artwork`;
+      paletteCaption.textContent = `${palette.name} palette / paused default scene`;
       return;
     }
 
@@ -48,7 +48,7 @@ if (paletteControls && valleyImage && paletteCaption) {
         control.setAttribute("aria-pressed", String(control.dataset.palette === key));
       }
       valleyImage.parentElement.removeAttribute("aria-busy");
-      paletteCaption.textContent = `${palette.name} palette / static artwork`;
+      paletteCaption.textContent = `${palette.name} palette / paused default scene`;
     };
     nextImage.onerror = () => {
       if (currentRequest !== request) return;

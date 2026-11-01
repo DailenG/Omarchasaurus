@@ -81,11 +81,13 @@ def terminal_command(renderer_args, preview, output):
     if shutil.which("ghostty"):
         return ["ghostty", "--gtk-single-instance=false", "--linux-cgroup=never",
                 "--class=" + app_class, "--title=" + title,
+                "--font-size=10",
                 "--window-padding-x=0", "--window-padding-y=0",
                 "--background-opacity=1", "--window-decoration=false",
                 "--confirm-close-surface=false", "-e", *renderer_args]
     if shutil.which("kitty"):
         return ["kitty", "--class=" + app_class, "--title=" + title,
+                "--override", "font_size=10",
                 "--override", "window_padding_width=0",
                 "--override", "background_opacity=1", "--override", "hide_window_decorations=yes",
                 "--override", "confirm_os_window_close=0", "-e", *renderer_args]
