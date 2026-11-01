@@ -267,7 +267,7 @@ The public repository excludes historical desktop captures, development-agent in
 
 **[Visit the project website](https://daileng.github.io/Omarchasaurus/)** for the age-friendly nine-animal field guide, name pronunciations, museum resources, Morning/Dusk artwork viewer and installation overview.
 
-The website is plain HTML, CSS and JavaScript in `site/`, with no build step, external fonts, analytics or browser storage. Its artwork comes from the production character canvas; the palette viewer is not a browser port of the simulation.
+The website is plain HTML, CSS and JavaScript in `site/`, with no build step, external fonts, analytics or browser storage. Its Morning/Dusk images are fresh **1920×1080 lossless WebP captures** of the production 192×54 character canvas, displayed responsively with the complete 16:9 frame visible—not upscaled copies of older images. The palette viewer is not a browser port of the simulation.
 
 Name clips are self-hosted and play only when requested. Each animal card has a visible embedded player: play, pause and replay stay on the guide, even without JavaScript. With JavaScript enabled, starting another name pauses the previous clip. Written syllable guides remain alongside the players. These are readings of animal names, **not dinosaur calls**; the terminal plugin itself remains silent. Browser playback fetches the selected clip from this GitHub Pages site, not a third-party speech API. Audio provenance and licenses are listed in [pronunciation credits](site/assets/pronunciation/ATTRIBUTION.md). Linked museums are independent websites with their own accessibility and privacy practices.
 
