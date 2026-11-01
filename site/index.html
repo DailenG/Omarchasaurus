@@ -23,7 +23,7 @@
   <meta name="twitter:image" content="https://daileng.github.io/Omarchasaurus/assets/social.png">
   <meta name="twitter:image:alt" content="Omarchasaurus, an ASCII dinosaur valley for Omarchy Quattro">
   <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
-  <link rel="stylesheet" href="./styles.css?v=compact-illustrations">
+  <link rel="stylesheet" href="./styles.css?v=inline-pronunciations-v2">
   <script src="./main.js?v=compact-illustrations" defer></script>
 </head>
 <body>
@@ -86,7 +86,7 @@
         <p><strong>Say it in small steps.</strong> Hyphens break names into syllables; CAPITAL letters show the stronger beats. Accents and accepted pronunciations vary. These are friendly English readings, not the only right way.</p>
         <p>The players say the animal’s <em>name</em> with a synthetic narrator created using ElevenLabs, not an animal call. There are no real recordings of these extinct animals. Nothing plays automatically. The players work without JavaScript, too. <a href="https://github.com/DailenG/Omarchasaurus/blob/main/site/assets/pronunciation/ATTRIBUTION.md">Read how the name audio was made.</a></p>
       </div>
-      <p class="pronunciation-instructions">Click or tap a portrait to see its illustration, then again to return to terminal art. Use Play/Pause beneath the name to listen. You will stay on this page.</p>
+      <p class="pronunciation-instructions">Click or tap a portrait to see its illustration, then again to return to terminal art. Use Play/Pause beside the written pronunciation to listen. You will stay on this page.</p>
       <div class="guide-cards">
         <article class="animal-card" id="brachiosaurus" aria-labelledby="brachiosaurus-title">
           <div class="animal-card-top"><span class="eyebrow">01 / Treetop browser</span><span class="animal-kind">Dinosaur</span></div>
@@ -98,8 +98,10 @@
             </summary>
             <img class="animal-portrait portrait-illustration" src="./assets/field-guide/illustrations/brachiosaurus.svg" width="640" height="360" loading="lazy" alt="Artistic illustration of Brachiosaurus with its tall neck and high shoulders">
           </details>
-          <p class="phonetic"><span class="phonetic-label">Say it</span> BRAK-ee-oh-sore-us</p>
-          <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/brachiosaurus.mp3?v=bella-20261101" aria-label="Pronunciation of Brachiosaurus" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
+          <div class="pronunciation-row">
+            <p class="phonetic"><span class="phonetic-label">Say it</span> BRAK-ee-oh-sore-us</p>
+            <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/brachiosaurus.mp3?v=bella-20261101" aria-label="Pronunciation of Brachiosaurus" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
+          </div>
           <dl class="animal-stats">
             <div><dt>When</dt><dd>Late Jurassic, about 152–145 million years ago</dd></div>
             <div><dt>Where</dt><dd>North America (fossils in the USA)</dd></div>
@@ -120,10 +122,12 @@
               <img class="animal-portrait" src="./assets/field-guide/tyrannosaurus-rex.png" width="640" height="360" loading="lazy" alt="Tyrannosaurus rex drawn with terminal characters">
               <span class="portrait-caption"><span class="portrait-show">See illustration</span><span class="portrait-hide">Back to terminal art</span></span>
             </summary>
-            <img class="animal-portrait portrait-illustration" src="./assets/field-guide/illustrations/tyrannosaurus-rex.svg" width="640" height="360" loading="lazy" alt="Artistic illustration of Tyrannosaurus rex with a large head and small two-fingered arms">
+            <img class="animal-portrait portrait-illustration" src="./assets/field-guide/illustrations/tyrannosaurus-rex.svg?v=natural-v2" width="640" height="360" loading="lazy" alt="Artistic illustration of Tyrannosaurus rex with a large head and small two-fingered arms">
           </details>
-          <p class="phonetic"><span class="phonetic-label">Say it</span> tie-RAN-oh-sore-us REKS</p>
-          <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/tyrannosaurus-rex.mp3?v=bella-20261101" aria-label="Pronunciation of Tyrannosaurus rex" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
+          <div class="pronunciation-row">
+            <p class="phonetic"><span class="phonetic-label">Say it</span> tie-RAN-oh-sore-us REKS</p>
+            <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/tyrannosaurus-rex.mp3?v=bella-20261101" aria-label="Pronunciation of Tyrannosaurus rex" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
+          </div>
           <dl class="animal-stats">
             <div><dt>When</dt><dd>Late Cretaceous, about 68–66 million years ago</dd></div>
             <div><dt>Where</dt><dd>North America (Canada and the USA)</dd></div>
@@ -146,8 +150,10 @@
             </summary>
             <img class="animal-portrait portrait-illustration" src="./assets/field-guide/illustrations/triceratops.svg" width="640" height="360" loading="lazy" alt="Artistic illustration of Triceratops with a broad frill and three horns">
           </details>
-          <p class="phonetic"><span class="phonetic-label">Say it</span> try-SERR-uh-tops</p>
-          <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/triceratops.mp3?v=bella-20261101" aria-label="Pronunciation of Triceratops" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
+          <div class="pronunciation-row">
+            <p class="phonetic"><span class="phonetic-label">Say it</span> try-SERR-uh-tops</p>
+            <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/triceratops.mp3?v=bella-20261101" aria-label="Pronunciation of Triceratops" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
+          </div>
           <dl class="animal-stats">
             <div><dt>When</dt><dd>Late Cretaceous, about 68–66 million years ago</dd></div>
             <div><dt>Where</dt><dd>North America</dd></div>
@@ -170,8 +176,10 @@
             </summary>
             <img class="animal-portrait portrait-illustration" src="./assets/field-guide/illustrations/stegosaurus.svg" width="640" height="360" loading="lazy" alt="Artistic illustration of Stegosaurus with rows of back plates and a spiked tail">
           </details>
-          <p class="phonetic"><span class="phonetic-label">Say it</span> STEG-oh-SORE-us</p>
-          <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/stegosaurus.mp3?v=bella-20261101" aria-label="Pronunciation of Stegosaurus" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
+          <div class="pronunciation-row">
+            <p class="phonetic"><span class="phonetic-label">Say it</span> STEG-oh-SORE-us</p>
+            <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/stegosaurus.mp3?v=bella-20261101" aria-label="Pronunciation of Stegosaurus" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
+          </div>
           <dl class="animal-stats">
             <div><dt>When</dt><dd>Late Jurassic, about 152–145 million years ago</dd></div>
             <div><dt>Where</dt><dd>North America (fossils in the USA)</dd></div>
@@ -194,8 +202,10 @@
             </summary>
             <img class="animal-portrait portrait-illustration" src="./assets/field-guide/illustrations/ankylosaurus.svg" width="640" height="360" loading="lazy" alt="Artistic illustration of Ankylosaurus with low body armor and a heavy tail club">
           </details>
-          <p class="phonetic"><span class="phonetic-label">Say it</span> an-KYE-low-sore-us</p>
-          <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/ankylosaurus.mp3?v=bella-20261101" aria-label="Pronunciation of Ankylosaurus" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
+          <div class="pronunciation-row">
+            <p class="phonetic"><span class="phonetic-label">Say it</span> an-KYE-low-sore-us</p>
+            <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/ankylosaurus.mp3?v=bella-20261101" aria-label="Pronunciation of Ankylosaurus" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
+          </div>
           <dl class="animal-stats">
             <div><dt>When</dt><dd>Late Cretaceous, about 68–66 million years ago</dd></div>
             <div><dt>Where</dt><dd>North America (Canada and the USA)</dd></div>
@@ -218,8 +228,10 @@
             </summary>
             <img class="animal-portrait portrait-illustration" src="./assets/field-guide/illustrations/parasaurolophus.svg" width="640" height="360" loading="lazy" alt="Artistic illustration of Parasaurolophus on four limbs with a swept-back tubular crest">
           </details>
-          <p class="phonetic"><span class="phonetic-label">Say it</span> pa-ra-saw-ROL-off-us</p>
-          <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/parasaurolophus.mp3?v=bella-20261101" aria-label="Pronunciation of Parasaurolophus" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
+          <div class="pronunciation-row">
+            <p class="phonetic"><span class="phonetic-label">Say it</span> pa-ra-saw-ROL-off-us</p>
+            <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/parasaurolophus.mp3?v=bella-20261101" aria-label="Pronunciation of Parasaurolophus" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
+          </div>
           <dl class="animal-stats">
             <div><dt>When</dt><dd>Late Cretaceous, about 77–73 million years ago</dd></div>
             <div><dt>Where</dt><dd>North America (Canada and the USA)</dd></div>
@@ -242,8 +254,10 @@
             </summary>
             <img class="animal-portrait portrait-illustration" src="./assets/field-guide/illustrations/diplodocus.svg" width="640" height="360" loading="lazy" alt="Artistic illustration of Diplodocus with a long low neck and slender whip tail">
           </details>
-          <p class="phonetic"><span class="phonetic-label">Say it</span> DIP-low-DOCK-us</p>
-          <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/diplodocus.mp3?v=bella-20261101" aria-label="Pronunciation of Diplodocus" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
+          <div class="pronunciation-row">
+            <p class="phonetic"><span class="phonetic-label">Say it</span> DIP-low-DOCK-us</p>
+            <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/diplodocus.mp3?v=bella-20261101" aria-label="Pronunciation of Diplodocus" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
+          </div>
           <dl class="animal-stats">
             <div><dt>When</dt><dd>Late Jurassic, about 152–145 million years ago</dd></div>
             <div><dt>Where</dt><dd>North America (fossils in the western USA)</dd></div>
@@ -266,8 +280,10 @@
             </summary>
             <img class="animal-portrait portrait-illustration" src="./assets/field-guide/illustrations/plesiosaurus.svg" width="640" height="360" loading="lazy" alt="Artistic illustration of the marine reptile Plesiosaurus with four paddle-shaped flippers">
           </details>
-          <p class="phonetic"><span class="phonetic-label">Say it</span> PLEE-see-uh-SORE-us</p>
-          <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/plesiosaurus.mp3?v=bella-20261101" aria-label="Pronunciation of Plesiosaurus" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
+          <div class="pronunciation-row">
+            <p class="phonetic"><span class="phonetic-label">Say it</span> PLEE-see-uh-SORE-us</p>
+            <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/plesiosaurus.mp3?v=bella-20261101" aria-label="Pronunciation of Plesiosaurus" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
+          </div>
           <dl class="animal-stats">
             <div><dt>When</dt><dd>Early Jurassic, about 200 million years ago</dd></div>
             <div><dt>Where</dt><dd>Ancient seas around what is now England</dd></div>
@@ -290,8 +306,10 @@
             </summary>
             <img class="animal-portrait portrait-illustration" src="./assets/field-guide/illustrations/pteranodon.svg" width="640" height="360" loading="lazy" alt="Artistic illustration of Pteranodon with membrane wings, a long toothless beak and a head crest">
           </details>
-          <p class="phonetic"><span class="phonetic-label">Say it</span> tuh-RAN-uh-DON</p>
-          <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/pteranodon.mp3?v=bella-20261101" aria-label="Pronunciation of Pteranodon" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
+          <div class="pronunciation-row">
+            <p class="phonetic"><span class="phonetic-label">Say it</span> tuh-RAN-uh-DON</p>
+            <audio class="pronunciation-player" controls preload="none" src="./assets/pronunciation/pteranodon.mp3?v=bella-20261101" aria-label="Pronunciation of Pteranodon" aria-describedby="pronunciation-help">Your browser cannot play inline audio. Use the written pronunciation above.</audio>
+          </div>
           <dl class="animal-stats">
             <div><dt>When</dt><dd>Late Cretaceous, around 85 million years ago</dd></div>
             <div><dt>Where</dt><dd>North America, above an inland sea (including today’s Kansas)</dd></div>
@@ -333,7 +351,7 @@
 
     <section class="faq section-space wrap" aria-labelledby="faq-title"><div class="faq-intro"><p class="eyebrow">05 / Before you wander</p><h2 id="faq-title">A few<br><em>field notes.</em></h2><a class="text-link" href="https://github.com/DailenG/Omarchasaurus#readme">The complete README <span aria-hidden="true">↗</span></a></div><div class="faq-list">
       <details><summary>Is this a game I can play in my browser?<span class="faq-indicator" aria-hidden="true"></span></summary><p>No. This website shows static captures from the actual production canvas. The interactive valley runs in a real terminal as an Omarchy Quattro plugin. The Morning / Dusk viewer here demonstrates the two palettes, not live animation.</p></details>
-      <details><summary>Can I learn the names without installing anything?<span class="faq-indicator" aria-hidden="true"></span></summary><p>Absolutely. The <a href="#field-guide">nine-animal field guide</a> has facts, syllable spellings and museum links. Click or tap a portrait to switch between terminal art and an illustration; keyboard users can focus it and press Enter or Space. Use the compact Play/Pause button beneath each name to hear it without leaving the guide. Without JavaScript, standard inline audio controls remain available, and the portrait switches still work. Nothing changes on hover or plays automatically. These are artistic interpretations and generated name readings, not fossil photographs or animal calls; the terminal plugin stays silent. See the <a href="https://github.com/DailenG/Omarchasaurus/blob/main/site/assets/pronunciation/ATTRIBUTION.md">audio sources and creation notes</a>.</p></details>
+      <details><summary>Can I learn the names without installing anything?<span class="faq-indicator" aria-hidden="true"></span></summary><p>Absolutely. The <a href="#field-guide">nine-animal field guide</a> has facts, syllable spellings and museum links. Click or tap a portrait to switch between terminal art and an illustration; keyboard users can focus it and press Enter or Space. Use the compact Play/Pause button beside the written pronunciation to hear it without leaving the guide. Without JavaScript, standard inline audio controls remain available, and the portrait switches still work. Nothing changes on hover or plays automatically. These are artistic interpretations and generated name readings, not fossil photographs or animal calls; the terminal plugin stays silent. See the <a href="https://github.com/DailenG/Omarchasaurus/blob/main/site/assets/pronunciation/ATTRIBUTION.md">audio sources and creation notes</a>.</p></details>
       <details><summary>How do the animal name labels work?<span class="faq-indicator" aria-hidden="true"></span></summary><p>In the terminal’s Enter Immersion mode, hover your mouse over an animal to reveal its name without clicking. Move away to clear the label. These labels belong to interactive immersion, not screensaver-style Start sessions or this website’s static image. If you use a keyboard or touch, browse the <a href="#field-guide">field guide</a> instead.</p></details>
       <details><summary>Will it run on my desktop?<span class="faq-indicator" aria-hidden="true"></span></summary><p>The supported setup is Omarchy Quattro with its Quickshell shell and Hyprland, Python 3.11 or newer, and Ghostty or Kitty. It is not presented as a general Windows, macOS or other Linux desktop app.</p></details>
       <details><summary>Is it an automatic screensaver?<span class="faq-indicator" aria-hidden="true"></span></summary><p>Not yet. In this development preview, you manually choose Enter Immersion or Start All Outputs from the tray. Automatic idle activation and plugin sound are off and not implemented. Ordinary input dismisses screensaver-style Start sessions; immersion is the interactive mode.</p></details>
