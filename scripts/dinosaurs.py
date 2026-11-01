@@ -26,6 +26,8 @@ from safe_io import Directory, atomic_json, diagnostic, held_directory, open_fil
 from character_art import draw_scene
 from event_preview import EVENTS, event_world, preview_settings
 
+_MAX_SGR_COORDINATE = 2_147_483_647
+
 
 
 class Input:
@@ -53,8 +55,14 @@ class Input:
             if p.startswith(b'\x1b[<'):
                 match = re.match(rb'\x1b\[<(\d+);(\d+);(\d+)([Mm])', p)
                 if match:
-                    code, x, y = (int(match[i]) for i in (1, 2, 3))
                     del self.data[:match.end()]
+                    # Bound fields before integer conversion and pointer-distance math.
+                    if any(len(match[i]) > 10 for i in (1, 2, 3)):
+                        continue
+                    code, x, y = (int(match[i]) for i in (1, 2, 3))
+                    if code > 255 or not (1 <= x <= _MAX_SGR_COORDINATE
+                                          and 1 <= y <= _MAX_SGR_COORDINATE):
+                        continue
                     if match[4] == b'M':
                         result.append(('motion' if code & 32 else 'click', (x-1, y-1)))
                     continue

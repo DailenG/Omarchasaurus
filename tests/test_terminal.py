@@ -45,6 +45,32 @@ class TerminalBehavior(unittest.TestCase):
         self.assertEqual(d.feed(b'x'*4097, 2), [('key', b'overflow')])
         self.assertFalse(d.data)
 
+    def test_mouse_numeric_limits_reject_bad_reports_without_losing_following_input(self):
+        invalid_fields = [
+            (b'9'*400, b'2', b'2'),
+            (b'35', b'9'*400, b'2'),
+            (b'35', b'2', b'9'*400),
+            (b'256', b'2', b'2'),
+            (b'35', b'0', b'2'),
+            (b'35', b'2', b'0'),
+            (b'35', b'2147483648', b'2'),
+            (b'35', b'2', b'2147483648'),
+        ]
+        for fields in invalid_fields:
+            with self.subTest(fields=fields):
+                decoder = Input()
+                report = b'\x1b[<' + b';'.join(fields) + b'M'
+                self.assertEqual(
+                    decoder.feed(report + b'\x1b[<0;12;8Mq', 1),
+                    [('click', (11, 7)), ('key', b'q')])
+                self.assertFalse(decoder.data)
+
+    def test_mouse_numeric_upper_bounds_remain_valid_zero_based_positions(self):
+        decoder = Input()
+        self.assertEqual(
+            decoder.feed(b'\x1b[<255;2147483647;2147483647M', 1),
+            [('motion', (2_147_483_646, 2_147_483_646))])
+
     def test_exact_elapsed_time_determines_simulation_not_fps(self):
         for speed in (.25, .75, 1.2, 2):
             outcomes = []

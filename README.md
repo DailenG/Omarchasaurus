@@ -209,6 +209,8 @@ Hover names are available only in interactive immersion. They follow the animal 
 
 The website gives each animal a compact **Play/Pause** button to the right of its written pronunciation, with no duration, timeline or extra media controls. The smaller visible button retains a larger touch target. Play, pause, replay and switching names stay inside the guide. Without JavaScript, standard inline audio controls remain available; no raw MP3 navigation links are used. Click or tap a portrait to switch between terminal art and its illustration—no hover changes or page navigation.
 
+Malformed or out-of-range terminal mouse reports are discarded without dropping subsequent valid input or interrupting the renderer.
+
 ### 0.3.0 interaction and artwork changes
 
 Egg/nest clicks now trigger a repeatable hatchling encounter with a timed offscreen departure, without changing automatic hatch deadlines or taking an occupied animal seat. The hatchling stays in the foreground rather than disappearing behind its parent.
