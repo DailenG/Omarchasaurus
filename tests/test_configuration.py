@@ -114,7 +114,6 @@ class ConfigurationResolution(unittest.TestCase):
             ({'seed': -1}, {'seed': 42}),
             ({'preset': 'unknown'}, {'preset': 'morning'}),
             ({'motion': {'speed': 3}}, {'motion': {'speed': 1}}),
-            ({'sound': {'enabled': True}}, {'sound': {'enabled': False}}),
             ({'animals': {'parasaurolophusEnabled': 1}},
              {'animals': {'parasaurolophusEnabled': True}}),
             ({'population': {'maxFamilies': 3}}, {'population': {'maxFamilies': 1}}),
@@ -172,15 +171,20 @@ class ConfigurationValidation(unittest.TestCase):
         self.assertTrue(resolved['motion']['reducedMotion'])
         self.assertFalse(resolved['integration']['exitOnPointerMotion'])
 
-    def test_unimplemented_audio_and_idle_remain_disabled(self):
-        for path in ('sound.enabled', 'integration.idleEnabled'):
-            with self.subTest(path=path):
-                self.assert_rejected_in_each_layer(patch_at(path, True))
-        resolved = settings({'sound': {'enabled': False, 'volume': 75},
-                             'integration': {'idleEnabled': False}})
-        self.assertFalse(resolved['sound']['enabled'])
-        self.assertFalse(resolved['integration']['idleEnabled'])
-        self.assertEqual(resolved['sound']['volume'], 75)
+
+    def test_idle_and_ambience_remain_opt_in_by_default_and_configurable(self):
+        defaults = settings()
+        self.assertFalse(defaults['integration']['idleEnabled'])
+        self.assertTrue(defaults['integration']['exitOnPointerMotion'])
+        self.assertFalse(defaults['sound']['enabled'])
+        self.assertEqual(defaults['sound']['volume'], 20)
+        enabled = settings({'integration': {'idleEnabled': True},
+                            'sound': {'enabled': True, 'volume': 35}})
+        self.assertTrue(enabled['integration']['idleEnabled'])
+        self.assertTrue(enabled['sound']['enabled'])
+        self.assertEqual(enabled['sound']['volume'], 35)
+        defaults_file = json.loads((ROOT / 'defaults.json').read_text(encoding='utf-8'))
+        self.assertEqual(settings(defaults_file), defaults)
 
     def test_numeric_types_and_nonfinite_values_are_rejected(self):
         paths = ('seed', 'schemaVersion', 'motion.speed', 'motion.parallaxStrength',

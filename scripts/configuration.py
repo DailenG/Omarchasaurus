@@ -46,7 +46,7 @@ class PopulationSettings(TypedDict):
 
 class SoundSettings(TypedDict):
     enabled: bool
-    volume: int
+    volume: int | float
 
 
 class IntegrationSettings(TypedDict):
@@ -131,8 +131,6 @@ def _validate(patch, schema, trail=''):
         elif isinstance(expected, bool):
             if not isinstance(value, bool):
                 raise ValueError(f'{path}: expected true or false')
-            if value and path in ('sound.enabled', 'integration.idleEnabled'):
-                raise ValueError(f'{path}: this feature is not implemented')
         elif isinstance(expected, (int, float)):
             if isinstance(value, bool) or not isinstance(value, (int, float)):
                 raise ValueError(f'{path}: expected a number')
@@ -175,11 +173,17 @@ def settings(document=None, overrides=None) -> Settings:
 
 
 def config_path():
-    base = Path(os.environ.get('XDG_CONFIG_HOME', str(Path.home() / '.config')))
-    if not base.is_absolute():
-        raise ValueError('XDG_CONFIG_HOME must be absolute')
+    raw = os.environ.get('XDG_CONFIG_HOME') or ''
+    if raw:
+        base = Path(raw)
+        if not base.is_absolute():
+            raise ValueError('XDG_CONFIG_HOME must be absolute')
+    else:
+        home = os.environ.get('HOME') or ''
+        if not home or not Path(home).is_absolute():
+            raise ValueError('HOME must be absolute')
+        base = Path(home) / '.config'
     return base / 'omarchasaurus/settings.json'
-
 
 def parse_document(raw):
     document = parse_json(raw, _MAX_SETTINGS_BYTES)
@@ -204,6 +208,51 @@ def load_document(path):
     settings(document)
     return document
 
+
+def reload_document(path, last_signature):
+    """Descriptor-bound live reload probe; never follows symlinks or loops on static errors."""
+    path = Path(path)
+    if not path.is_absolute():
+        path = Path.cwd() / path
+    signature = None
+    try:
+        try:
+            directory = Directory.open(path.parent)
+        except FileNotFoundError:
+            if last_signature is None:
+                return False, None, None, None
+            return True, None, {}, None
+        except (OSError, ValueError) as error:
+            try:
+                parent_info = os.lstat(path.parent)
+                signature = ('parent-error', parent_info.st_dev, parent_info.st_ino,
+                             parent_info.st_mode, parent_info.st_uid, parent_info.st_mtime_ns)
+            except OSError:
+                signature = ('parent-error',)
+            if signature == last_signature:
+                return False, signature, None, None
+            return False, signature, None, error
+        with directory:
+            try:
+                info = os.stat(path.name, dir_fd=directory.fd, follow_symlinks=False)
+            except FileNotFoundError:
+                if last_signature is None:
+                    return False, None, None, None
+                return True, None, {}, None
+            signature = (info.st_dev, info.st_ino, info.st_mode, info.st_nlink,
+                         info.st_uid, info.st_mtime_ns, info.st_size)
+            if signature == last_signature:
+                return False, signature, None, None
+            document = read_json(directory.fd, path.name, blank=True, missing=True)
+    except (OSError, ValueError) as error:
+        return False, signature, None, error
+    try:
+        if not isinstance(document, dict):
+            raise ValueError('settings: expected an object')
+        settings(document)
+    except ValueError as error:
+        return False, signature, None, error
+    return True, signature, document, None
 
 def load_settings(path, overrides=None) -> Settings:
     """Load and resolve sparse settings; missing or blank files use defaults."""

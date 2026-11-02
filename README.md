@@ -25,14 +25,14 @@
   <a href="LICENSE"><kbd>MIT</kbd></a>
   &nbsp; <kbd>Python 3.11+</kbd>
   &nbsp; <kbd>Omarchy Quattro</kbd>
-  &nbsp; <kbd>Development preview · 0.3.0</kbd>
+  &nbsp; <kbd>Version 0.4.0</kbd>
 </p>
 
 ![Omarchasaurus production character-grid snapshot: a dinosaur valley drawn in a truecolor terminal](preview.png)
 
 <p align="center"><sub>Actual production World/Canvas snapshot, rendered to PNG. No image protocol or separate GPU scene.</sub></p>
 
-**A development preview, not a finished screensaver service.** Manual **Enter Immersion** and screensaver-style **Start** are available. Automatic idle activation and in-screensaver sound are **off and not implemented**; the website's spoken names are a separate learning feature. Marketplace submission/approval is separate from this repository; no marketplace verification is claimed.
+Manual **Enter Immersion**, multi-output **Start All Outputs**, opt-in **Automatic Idle Activation** (preserving Omarchy's configured screensaver timeout, Keep Awake and lock timing) and optional **Gentle Valley Ambience** (soft locally synthesized wind and stream noise, off by default, never imitation dinosaur calls). The website's spoken names are a separate learning feature. Marketplace submission/approval is separate from this repository; no marketplace verification is claimed.
 
 ## In the valley
 
@@ -42,7 +42,7 @@
 | **Room for company** | T. rex, Triceratops, Stegosaurus, Ankylosaurus, Parasaurolophus and Diplodocus, plus the marine reptile Plesiosaurus and the pterosaur Pteranodon. Arrivals respect the animal ceiling. |
 | **Small encounters** | Hover to discover an animal's name, then click for articulated reactions, a sky meteor or a lake leap. Rare hatching, flock, shower, rainbow and volcano events unfold over active session time. |
 | **Your composition** | Morning and Dusk palettes; independent scenery, animal and crowding choices; reduced motion. Randomize stages a valley for review—it never autosaves. |
-| **An intentional pause** | Launch manually on the focused output or Start on every active output. Surface stops only the plugin's owned sessions. |
+| **An intentional pause** | Launch interactive immersion on the focused output, Start across all outputs, or opt in to automatic idle activation with unchanged Omarchy lock deadlines. Surface stops only the plugin's owned sessions. |
 
 ## Young explorers: start here
 
@@ -75,6 +75,7 @@
 - **Python 3.11+**; runtime Python uses only the standard library.
 - **Ghostty or Kitty.** The launcher prefers Ghostty and opens separately owned terminal instances at **10 pt**, with bold character art. This size override applies only to Omarchasaurus windows; ordinary terminal preferences and the selected font family are unchanged.
 - A **UTF-8, truecolor terminal** and a monospace font. SGR mouse reporting enables interaction.
+- **PipeWire (`pw-cat`)** is optional and used only when **Gentle valley ambience** is enabled; visuals run normally if `pw-cat` is absent.
 
 There is no runtime package installer, source download, build step, account, API key or elevated helper. No sudo or pkexec is required. Dependencies must already be present; the plugin does not install or update them.
 
@@ -116,7 +117,7 @@ These keys do not save preferences; **N** resets seeded schedules rather than re
 - **Shape a valley:** [Settings](#settings), [Randomize Valley](#randomize-valley), [interaction and events](#interaction-and-events).
 - **Learn together:** [Young explorers](#young-explorers-start-here), [museum resources](#keep-asking-questions), and the [spoken-name field guide](https://daileng.github.io/Omarchasaurus/#field-guide).
 - **Explore on demand:** [Try an event without waiting](#try-an-event-without-waiting).
-- **Maintain an installation:** [Updating to 0.3.0 and the one-time 0.1.0 migration](#updating--030), [removing](#removing).
+- **Maintain an installation:** [Updating to 0.4.0 and the one-time 0.1.0 migration](#updating--040), [removing](#removing).
 - **Understand the boundaries:** [Files, privacy and security](#files-privacy-and-security-boundaries), [development checks and release policy](#development-checks), [license](#license).
 
 ## Settings
@@ -129,6 +130,9 @@ Choices remain staged until **Apply Settings**, or until **Enter Immersion / Sta
 - **Diplodocus stays by the lake:** independent of its species switch and the palette. On makes it resident; Off gives scheduled visits every 10–20 active minutes.
 - **Animal ceiling:** an upper bound, not a cloning target. Every family member, calf, young Brachiosaurus, flyer and active lake jumper counts. Full budgets skip arrivals rather than evict visible animals. A ceiling of one leaves the adult Brachiosaurus.
 - **Scenery:** seven density controls, from 0% to 200%, plus the Brachiosaurus nest. The focal tree and major terrain remain. Ambient-cloud density is separate from the passing weather cloud.
+- **Automatic idle activation:** off by default for explicit opt-in. When enabled and applied, Omarchasaurus follows Omarchy's configured `idle.screensaver` timeout, honors Keep Awake and Wayland idle inhibitors, preserves Omarchy's first-party lock deadline, and holds an exclusive owned lease on `screensaver-off` so the stock visualizer does not open simultaneously. Existing user or third-party `screensaver-off` toggles are never overwritten or deleted.
+- **Exit screensaver on pointer movement:** on by default for screensaver-style **Start** and automatic idle sessions; clicks and keys always dismiss. **Enter Immersion** stays interactive.
+- **Gentle valley ambience:** off by default (`20%` default volume when enabled). Synthesizes soft local wind and stream noise into `pw-cat` with one shared stream across all outputs and session modes—no imitation dinosaur calls, bundled audio or network requests.
 
 ### Randomize Valley
 
@@ -171,7 +175,7 @@ For an animation in the current terminal rather than a new window:
 python3 scripts/dinosaurs.py --preview --test-event hatching
 ```
 
-## Updating — 0.3.0
+## Updating — 0.4.0
 
 Apply or discard staged choices and Surface owned previews before updating. Quit any separately launched standalone control room, then use the normal updater:
 
@@ -189,13 +193,17 @@ omarchy plugin enable dailen.omarchasaurus
 omarchy-shell omarchasaurus runtimeVersion
 ```
 
-The final command reports `0.3.0`. After a normal updater rescan, this migration does not require restarting unrelated plugins or the desktop shell.
+The final command reports `0.4.0`. After a normal updater rescan, this migration does not require restarting unrelated plugins or the desktop shell.
 
 **Already-updated development/source checkouts:** the updater reports “up to date” without rescanning. If the plugin-only migration still loads old code, the running registry also has old entrypoint paths. Run `omarchy-shell shell rescanPlugins` **between disabling and re-enabling Omarchasaurus**. This broader rescan closes open plugin panels and reloads non-retained plugin services/widgets, so choose a quiet moment and Apply/discard their pending edits first. It is not a whole-shell restart and is not needed for ordinary later updates between version-scoped releases.
 
 Closing/reopening the control room preserves staged choices and in-flight Apply/Randomize work while its service stays loaded. A release reload discards unsaved staged choices and may atomically cancel finite helpers. Standalone instances keep their loaded release until quit.
 
-### Current development-preview changes
+### 0.4.0 screensaver and ambience changes
+
+Opt-in **Automatic idle activation** integrates with Omarchy's first-party idle and lock lifecycle without modifying `/usr/share/omarchy/` or shared Hyprland files. While enabled and applied, a supervised lease helper owns `~/.local/state/omarchy/toggles/screensaver-off` paired with a private `~/.local/state/omarchasaurus/omarchasaurus-idle.json` record and lock, queries live host readiness through `omarchy-shell idle status` and `omarchy-shell lock isLocked`, arms `IdleMonitor` with `respectInhibitors: true`, and re-verifies eligibility before each automatic output terminal spawns. Disabling the setting, unloading the service or removing the plugin releases only matching owned markers.
+
+Optional **Gentle valley ambience** synthesizes soft 12 kHz wind and water noise locally into PipeWire (`pw-cat`), off by default and without imitation animal calls. A retained `audio.lock` ensures at most one stream plays across multiple monitors and session modes, with standby takeover and clean teardown on disable or exit.
 
 Diplodocus has a continuously tapered tail with fixed-length articulated links, a firm slightly raised base and a fine, more flexible tip. A more distinct resting curve and broader, slow idle swishes keep the motion legible at ordinary terminal sizes. A new resident session begins swishing in its first few seconds, then alternates eight-second swishes with quiet stretches on a twenty-second motion-clock cycle. Walking and click reactions bend the chain without stretching it or moving the torso. Pause freezes the swish, and reduced motion attenuates it. Animal limits, visit timing and viewport-safe bounds are unchanged; no new setting is required.
 
@@ -205,7 +213,7 @@ The Triceratops calf maintains a clear following gap behind the adult's tail. Bo
 
 This Python-only source change is picked up by a **new** immersion/screensaver session. An already-running terminal retains its loaded renderer until it exits; no tray or desktop-shell restart is needed.
 
-Hover names are available only in interactive immersion. They follow the animal pixels under the pointer, work while paused, and do not change click targets or saved preferences. Ordinary screensaver-style Start still dismisses on input rather than showing learning labels. The native controller remains version0.3.0; Python-only artwork and hover changes on current `main` do not require a QML cache migration.
+Hover names are available only in interactive immersion. They follow the animal pixels under the pointer, work while paused, and do not change click targets or saved preferences. Ordinary screensaver-style Start and automatic idle sessions dismiss on input rather than showing learning labels.
 
 The website gives each animal a compact **Play/Pause** button to the right of its written pronunciation, with no duration, timeline or extra media controls. The smaller visible button retains a larger touch target. Play, pause, replay and switching names stay inside the guide. Without JavaScript, standard inline audio controls remain available; no raw MP3 navigation links are used. Click or tap a portrait to switch between terminal art and its illustration—no hover changes or page navigation.
 
@@ -229,7 +237,8 @@ Files used by the plugin:
 
 - `$XDG_CONFIG_HOME/omarchasaurus/settings.json` (normally `~/.config/omarchasaurus/settings.json`): sparse user choices, written by Apply, pending-choice saves before a session launch, or the explicit save helper.
 - The sibling `settings.lock`: cooperative writer lock, retained between runs.
-- `$XDG_RUNTIME_DIR/omarchasaurus-terminal/`: owner-only coordinator locks, mode-0600 control sockets and private per-session directories. Session files include `authority.json` and, on dismissal, `dismissed.json`; their random nonce never travels in process arguments. Active session data and sockets are cleaned up after owned terminals stop. Empty runtime directories/lock files can remain until logout.
+- `$HOME/.local/state/omarchy/toggles/screensaver-off` and `$HOME/.local/state/omarchasaurus/omarchasaurus-idle.json` plus `omarchasaurus-idle.lock`: created only when **Automatic idle activation** is enabled and applied (`$HOME/.local/state` matches Omarchy's hardcoded toggle and Keep Awake path even when `XDG_STATE_HOME` differs). Pre-existing user or third-party toggles are refused, never overwritten or deleted. Disabling automatic activation, unloading the service or removing the plugin unlinks matching owned `screensaver-off` and `omarchasaurus-idle.json` files; the empty `omarchasaurus-idle.lock` file in `~/.local/state/omarchasaurus/` may remain inert on disk. If power loss or an ungraceful system crash leaves a stale matching `omarchasaurus-idle.json` and `screensaver-off` pair behind with no live lock holder, Omarchasaurus fails closed and reports stale ownership; inspect and remove those two matching files before clicking **Retry Idle Check**.
+- `$XDG_RUNTIME_DIR/omarchasaurus-terminal/`: owner-only coordinator locks, `audio.lock` for single-stream PipeWire ambience leadership, mode-0600 control sockets and private per-session directories. Session files include `authority.json` and, on dismissal, `dismissed.json`; their random nonce never travels in process arguments. Active session data, audio workers and sockets are cleaned up after owned terminals stop. Empty runtime directories/lock files can remain until logout.
 - Python may generate ignored `__pycache__` files in its checkout. Quickshell may retain its normal controller logs under its runtime directory; the plugin does not remove host logs.
 
 Settings reads are byte-bounded, schema-validated and use no-follow/nonblocking descriptors. Unsafe file types, links, ownership/permissions and symlinked directory chains are rejected, not repaired. Official saves are exclusive mode-0600 temporaries followed by atomic replacement and file/directory synchronization. Directory and file operations retain validated directory descriptors.
@@ -249,9 +258,9 @@ python3 ~/.config/omarchy/plugins/dailen.omarchasaurus/scripts/launch-dinosaurs 
 omarchy plugin remove dailen.omarchasaurus
 ```
 
-Shell unload signals supervised session coordinators; they stop and reap owned terminals even when Quickshell immediately kills its direct helper process. Standalone Quit waits for local event tests, saves and helper processes before exiting.
+Shell unload signals supervised session coordinators and the supervised idle-lease worker; they stop and reap owned terminals and release any owned `screensaver-off` marker even when Quickshell immediately kills its direct helper process or the plugin directory is removed. Standalone Quit waits for local event tests, saves, idle helpers and child processes before exiting.
 
-Removal intentionally **keeps** `settings.json` and `settings.lock` under the configuration directory so reinstalling preserves choices. Stopped runtime lock files can remain until logout, and normal Quickshell logs follow the host's retention. No account credentials, keyring entries, installed packages, units, hooks, firewall rules or shared Hyprland configuration need removal because this plugin creates none. Omarchy manages the plugin registration itself. Remove retained settings manually only if you want to discard them; do not delete a shared configuration directory.
+Removal intentionally **keeps** `settings.json` and `settings.lock` under `$XDG_CONFIG_HOME/omarchasaurus/` so reinstalling preserves choices, and an empty `omarchasaurus-idle.lock` under `~/.local/state/omarchasaurus/` may remain inert after the owned `screensaver-off` toggle and `omarchasaurus-idle.json` record are released. Stopped runtime lock files under `$XDG_RUNTIME_DIR/omarchasaurus-terminal/` can remain until logout, and normal Quickshell logs follow the host's retention. No account credentials, keyring entries, installed packages, units, hooks, firewall rules or shared Hyprland configuration need removal because this plugin creates none. Omarchy manages the plugin registration itself. Remove retained settings or state files manually only if you want to discard them; do not delete a shared configuration directory.
 
 ## Development checks
 
@@ -273,7 +282,7 @@ The website is plain HTML, CSS and JavaScript in `site/`, with no build step, ex
 
 Each field-guide portrait has a **See illustration / Back to terminal art** switch. Click or tap the portrait, or focus it and press Enter or Space. These native disclosures work without JavaScript, never switch on hover and do not start audio. Nine original, self-contained SVG illustrations in `site/assets/field-guide/illustrations/` echo the terminal portraits' colors and identifying features and are covered by the project's MIT license. They are artistic interpretations, not fossil photographs or scientific reconstructions.
 
-Name clips are self-hosted and play only when requested. The nine readings use ElevenLabs' synthetic **Bella** narrator, explicit phoneme spellings, a slightly slower delivery and matched playback levels. A compact Play/Pause button beside the written pronunciation replaces the full media bar when JavaScript is available; its visible size is 60×32px, with a 44px-tall touch target and no displayed duration or scrubber. Starting another name pauses the previous clip, playback can be paused while loading, and errors leave a usable retry action. Without JavaScript, standard inline controls remain available below the pronunciation. Play, pause and replay never navigate away. These are readings of animal names, **not dinosaur calls**; the terminal plugin itself remains silent. Browser playback fetches the selected finished MP3 from this GitHub Pages site, not a third-party speech API; no listener account, API key or voice-model download is needed. Audio provenance, generation settings, checks and licensing are listed in [pronunciation credits](site/assets/pronunciation/ATTRIBUTION.md). Linked museums are independent websites with their own accessibility and privacy practices.
+Name clips are self-hosted and play only when requested. The nine readings use ElevenLabs' synthetic **Bella** narrator, explicit phoneme spellings, a slightly slower delivery and matched playback levels. A compact Play/Pause button beside the written pronunciation replaces the full media bar when JavaScript is available; its visible size is 60×32px, with a 44px-tall touch target and no displayed duration or scrubber. Starting another name pauses the previous clip, playback can be paused while loading, and errors leave a usable retry action. Without JavaScript, standard inline controls remain available below the pronunciation. Play, pause and replay never navigate away. These are readings of animal names, **not dinosaur calls**; the terminal plugin never plays these recordings or imitation calls (its optional local wind/water ambience is synthesized offline and off by default). Browser playback fetches the selected finished MP3 from this GitHub Pages site, not a third-party speech API; no listener account, API key or voice-model download is needed. Audio provenance, generation settings, checks and licensing are listed in [pronunciation credits](site/assets/pronunciation/ATTRIBUTION.md). Linked museums are independent websites with their own accessibility and privacy practices.
 
 Preview locally:
 

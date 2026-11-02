@@ -78,3 +78,63 @@ def run_bounded(argv, timeout=5.0, stdout_limit=1024 * 1024, stderr_limit=8192):
         return buffers[child.stdout].decode('utf-8')
     except UnicodeError as error:
         raise ValueError('Discovery command returned invalid UTF-8') from error
+
+
+def supervise(callback, *args):
+    """Keep cleanup in a worker when its UI-owned guardian receives SIGKILL.
+
+    Both generations get a parent-death signal; the worker handles TERM using
+    its normal finally blocks, rather than losing owned resources with the UI.
+    All callback modules must already be loaded before entering this function.
+    """
+    import ctypes
+
+    libc = ctypes.CDLL(None, use_errno=True)
+    prctl = libc.prctl
+    prctl.argtypes = [ctypes.c_int, ctypes.c_ulong, ctypes.c_ulong,
+                     ctypes.c_ulong, ctypes.c_ulong]
+    prctl.restype = ctypes.c_int
+    child_pid = None
+    stopping = False
+    old_handlers = {}
+
+    def protect(parent):
+        if prctl(1, signal.SIGTERM, 0, 0, 0) != 0:
+            raise OSError(ctypes.get_errno(), "Cannot protect owned cleanup")
+        return os.getppid() == parent
+
+    def forward(signum, frame):
+        nonlocal stopping
+        stopping = True
+        if child_pid:
+            try:
+                os.kill(child_pid, signum)
+            except ProcessLookupError:
+                pass
+
+    def early_stop(signum, frame):
+        raise SystemExit(0)
+
+    parent = os.getppid()
+    for signum in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+        old_handlers[signum] = signal.signal(signum, forward)
+    try:
+        if not protect(parent):
+            return 0
+        guardian = os.getpid()
+        child_pid = os.fork()
+        if child_pid == 0:
+            child_pid = None
+            for signum in old_handlers:
+                signal.signal(signum, early_stop)
+            if not protect(guardian) or stopping:
+                return 0
+            return callback(*args)
+        if stopping:
+            forward(signal.SIGTERM, None)
+        _, status = os.waitpid(child_pid, 0)
+        code = os.waitstatus_to_exitcode(status)
+        return code if code >= 0 else 128 - code
+    finally:
+        for signum, handler in old_handlers.items():
+            signal.signal(signum, handler)

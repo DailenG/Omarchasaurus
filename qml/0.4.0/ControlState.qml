@@ -17,7 +17,7 @@ Item {
     property int stagingGeneration: 0
     property bool readPending: false
     property string commandStatus: ""
-    property string probeStatus: qsTr("Manual start only · idle OFF")
+    property string probeStatus: qsTr("Ready · manual and automatic screensaver controls")
     property var overrides: ({})
     property var effective: ({})
     property bool documentValid: false
@@ -27,6 +27,7 @@ Item {
     property string validationError: ""
     property string loadedSnapshot: "{}"
     property bool settingsValid: false
+    property bool persistedIdleEnabled: false
     property bool dirty: false
     property bool externalChange: false
     readonly property string sessionStatus: commandStatus || (controller ? controller.statusLine : probeStatus)
@@ -34,8 +35,12 @@ Item {
     readonly property string pluginId: "dailen.omarchasaurus"
     readonly property string pluginDir: decodeURIComponent(String(Qt.resolvedUrl("../../")).replace(/^file:\/\//, "").replace(/\/$/, ""))
     readonly property string launcher: pluginDir + "/scripts/launch-dinosaurs"
-    readonly property string configDir: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/omarchasaurus"
-    readonly property string configPath: configDir + "/settings.json"
+    readonly property string rawConfigHome: Quickshell.env("XDG_CONFIG_HOME") || ""
+    readonly property string rawHome: Quickshell.env("HOME") || ""
+    readonly property string configBase: rawConfigHome.indexOf("/") === 0 ? rawConfigHome
+        : (!rawConfigHome && rawHome.indexOf("/") === 0 ? rawHome + "/.config" : "")
+    readonly property string configDir: configBase ? configBase + "/omarchasaurus" : ""
+    readonly property string configPath: configDir ? configDir + "/settings.json" : ""
 
     function open(payloadJson) {
         if (opened || shuttingDown) return
@@ -65,6 +70,7 @@ Item {
         readTimer.restart()
     }
     function readFailed(message) {
+        persistedIdleEnabled = false
         if (dirty) {
             markExternalChange()
             return
@@ -98,6 +104,8 @@ Item {
             return
         }
         var snapshot = JSON.stringify(value)
+        // Automatic activation follows validated disk state, never staged choices.
+        persistedIdleEnabled = !!value.integration && value.integration.idleEnabled === true
         if (!dirty && documentReadable && documentValid && settingsValid && snapshot === loadedSnapshot) return
         if (dirty) {
             // File watchers also report our atomic save and unchanged reloads.
@@ -186,6 +194,20 @@ Item {
         var next = JSON.parse(JSON.stringify(overrides))
         next.population = next.population || ({})
         next.population.randomVisitors = !fieldValue("population", "randomVisitors")
+        stage(next)
+    }
+    function toggleBoolean(section, key) {
+        if (!editable || !effective[section]) return
+        var next = JSON.parse(JSON.stringify(overrides))
+        next[section] = next[section] || ({})
+        next[section][key] = !fieldValue(section, key)
+        stage(next)
+    }
+    function setVolume(value) {
+        if (!editable || !effective.sound) return
+        var next = JSON.parse(JSON.stringify(overrides))
+        next.sound = next.sound || ({})
+        next.sound.volume = Math.round(value)
         stage(next)
     }
     function resetField(section, key) {
@@ -362,6 +384,12 @@ Item {
                 root.loadedSnapshot = inputSnapshot
                 root.dirty = false
                 root.externalChange = false
+                try {
+                    var saved = JSON.parse(inputSnapshot)
+                    root.persistedIdleEnabled = !!saved.integration && saved.integration.idleEnabled === true
+                } catch (error) {
+                    root.persistedIdleEnabled = false
+                }
             } else root.actionStatus = qsTr("Settings were not applied (exit %1): ").arg(code) + (failureReason || diagnostic(stderrText || stdoutText))
             inputSnapshot = ""
             root.readSettings()

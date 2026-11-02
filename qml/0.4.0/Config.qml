@@ -329,6 +329,137 @@ Loader {
                         }
                         Action { label: qsTr("Reset"); objectName: "reset-reducedMotion"; Accessible.name: qsTr("Reduced motion reset to default"); width: 94; height: 34; enabled: control.editable && control.hasOverride("motion", "reducedMotion"); onClicked: control.resetField("motion", "reducedMotion") }
                     }
+                    Rectangle { width: parent.width; height: 1; color: "#41694d" }
+                    Label { text: qsTr("Screensaver and ambience"); font.pixelSize: 18; color: "#eff5df" }
+                    Row {
+                        width: parent.width
+                        spacing: 10
+                        Controls.CheckBox {
+                            id: idleEnabledToggle
+                            objectName: "integration-idleEnabled"
+                            width: parent.width - 104
+                            text: qsTr("Automatic idle activation")
+                            palette.windowText: "#eff5df"
+                            palette.highlight: "#a8d78b"
+                            checked: !!control.effective.integration && control.fieldValue("integration", "idleEnabled")
+                            enabled: control.editable && !!control.effective.integration
+                            Accessible.name: qsTr("Automatic idle activation")
+                            Accessible.description: qsTr("Follow Omarchy's configured screensaver timeout, honor Keep Awake and media inhibitors, and preserve Omarchy lock timing. Apply Settings to activate or release.")
+                            onToggled: control.toggleBoolean("integration", "idleEnabled")
+                            onActiveFocusChanged: if (activeFocus) view.revealItem(idleEnabledToggle)
+                        }
+                        Action { label: qsTr("Reset"); objectName: "reset-idleEnabled"; Accessible.name: qsTr("Automatic idle activation reset to default"); width: 94; height: 34; enabled: control.editable && control.hasOverride("integration", "idleEnabled"); onClicked: control.resetField("integration", "idleEnabled") }
+                    }
+                    Label {
+                        objectName: "idle-status-summary"
+                        width: parent.width
+                        wrapMode: Text.WordWrap
+                        text: (overlay.service && overlay.service.idle ? overlay.service.idle.summary : qsTr("Idle integration status unavailable"))
+                            + (control.dirty ? "\n" + qsTr("Apply Settings to commit staged screensaver changes.") : "")
+                        color: overlay.service && overlay.service.idle && overlay.service.idle.armed ? "#a8d78b" : "#edd39c"
+                        font.pixelSize: 12
+                    }
+                    Flow {
+                        width: parent.width
+                        spacing: 10
+                        Action {
+                            label: qsTr("Retry Idle Check")
+                            objectName: "retry-idle-integration"
+                            width: 180
+                            height: 36
+                            enabled: !!(overlay.service && overlay.service.idle && overlay.service.idle.canRetry)
+                            Accessible.description: qsTr("Recheck Omarchy idle eligibility and retry acquiring the stock-screensaver suppression lease if automatic activation is enabled.")
+                            onClicked: if (overlay.service && overlay.service.idle) overlay.service.idle.retry()
+                        }
+                    }
+                    Label {
+                        width: parent.width
+                        wrapMode: Text.WordWrap
+                        text: qsTr("Off by default for explicit opt-in. When enabled and applied, Omarchasaurus uses Omarchy's idle.screensaver timeout, honors Keep Awake and Wayland idle inhibitors, preserves Omarchy lock deadlines, and temporarily suppresses only the stock visualizer while its owned lease is active. Existing user or third-party screensaver-off toggles are never overwritten.")
+                        color: "#9cb39e"
+                        font.pixelSize: 12
+                    }
+                    Row {
+                        width: parent.width
+                        spacing: 10
+                        Controls.CheckBox {
+                            id: exitOnMotionToggle
+                            objectName: "integration-exitOnPointerMotion"
+                            width: parent.width - 104
+                            text: qsTr("Exit screensaver on pointer movement")
+                            palette.windowText: "#eff5df"
+                            palette.highlight: "#a8d78b"
+                            checked: !!control.effective.integration && control.fieldValue("integration", "exitOnPointerMotion")
+                            enabled: control.editable && !!control.effective.integration
+                            Accessible.name: qsTr("Exit screensaver on pointer movement")
+                            Accessible.description: qsTr("Dismiss Start and automatic screensaver sessions when the pointer moves. Enter Immersion always stays interactive.")
+                            onToggled: control.toggleBoolean("integration", "exitOnPointerMotion")
+                            onActiveFocusChanged: if (activeFocus) view.revealItem(exitOnMotionToggle)
+                        }
+                        Action { label: qsTr("Reset"); objectName: "reset-exitOnPointerMotion"; Accessible.name: qsTr("Exit on pointer movement reset to default"); width: 94; height: 34; enabled: control.editable && control.hasOverride("integration", "exitOnPointerMotion"); onClicked: control.resetField("integration", "exitOnPointerMotion") }
+                    }
+                    Row {
+                        width: parent.width
+                        spacing: 10
+                        Controls.CheckBox {
+                            id: soundEnabledToggle
+                            objectName: "sound-enabled"
+                            width: parent.width - 104
+                            text: qsTr("Gentle valley ambience (wind and water)")
+                            palette.windowText: "#eff5df"
+                            palette.highlight: "#a8d78b"
+                            checked: !!control.effective.sound && control.fieldValue("sound", "enabled")
+                            enabled: control.editable && !!control.effective.sound
+                            Accessible.name: qsTr("Gentle valley ambience")
+                            Accessible.description: qsTr("Play soft locally synthesized wind and stream noise through PipeWire. No imitation dinosaur calls or recordings.")
+                            onToggled: control.toggleBoolean("sound", "enabled")
+                            onActiveFocusChanged: if (activeFocus) view.revealItem(soundEnabledToggle)
+                        }
+                        Action { label: qsTr("Reset"); objectName: "reset-soundEnabled"; Accessible.name: qsTr("Gentle valley ambience reset to default"); width: 94; height: 34; enabled: control.editable && control.hasOverride("sound", "enabled"); onClicked: control.resetField("sound", "enabled") }
+                    }
+                    Column {
+                        width: parent.width
+                        spacing: 4
+                        Row {
+                            width: parent.width
+                            Label { width: parent.width - 160; text: qsTr("Ambience volume"); color: "#eff5df" }
+                            Label {
+                                width: 160
+                                horizontalAlignment: Text.AlignRight
+                                text: control.validationError ? qsTr("Unavailable") : !control.settingsValid || !control.effective.sound ? qsTr("Checking…") :
+                                      (control.fieldValue("sound", "volume") === 0 ? qsTr("Muted (0%)") : control.fieldValue("sound", "volume") + "%")
+                            }
+                        }
+                        Row {
+                            width: parent.width
+                            spacing: 10
+                            Controls.Slider {
+                                id: soundVolumeSlider
+                                objectName: "sound-volume"
+                                width: Math.max(40, parent.width - 104)
+                                height: 34
+                                palette.highlight: "#a8d78b"
+                                from: 0
+                                to: 100
+                                stepSize: 1
+                                value: control.effective.sound ? control.fieldValue("sound", "volume") : 20
+                                enabled: control.editable && !!control.effective.sound
+                                Accessible.name: qsTr("Ambience volume")
+                                Accessible.description: qsTr("Volume from 0 to 100 percent for optional wind and water ambience.")
+                                onValueChanged: if (enabled && control.effective.sound && Math.round(value) !== control.fieldValue("sound", "volume")) control.setVolume(value)
+                                onActiveFocusChanged: if (activeFocus) view.revealItem(soundVolumeSlider)
+                            }
+                            Action { label: qsTr("Reset"); objectName: "reset-soundVolume"; Accessible.name: qsTr("Ambience volume reset to default"); width: 94; height: 34; enabled: control.editable && control.hasOverride("sound", "volume"); onClicked: control.resetField("sound", "volume") }
+                        }
+                    }
+                    Label {
+                        width: parent.width
+                        wrapMode: Text.WordWrap
+                        text: qsTr("Off by default. Soft locally synthesized wind and stream noise only—no imitation dinosaur calls, bundled audio or network requests. Requires PipeWire (pw-cat); one stream is shared across all outputs and session modes.")
+                        color: "#9cb39e"
+                        font.pixelSize: 12
+                    }
+                    Rectangle { width: parent.width; height: 1; color: "#41694d" }
                     Label { text: qsTr("Animals and crowding"); font.pixelSize: 18; color: "#eff5df" }
                     Label { width: parent.width; wrapMode: Text.WordWrap; text: qsTr("Brachiosaurus always stays. The animal limit is a ceiling, not a target. Visible animals keep their places; new arrivals never remove them mid-scene. At a full limit, a pass or surfacing can be skipped until another natural entry. Lowering the limit or switching an animal Off applies immediately.") }
                     Row {
@@ -446,7 +577,7 @@ Loader {
                     Action { label: qsTr("Reload / Discard"); objectName: "reload-settings"; enabled: !control.saving && !control.localEventBusy && !control.randomizing && !control.shuttingDown; onClicked: { control.stagingGeneration++; control.dirty = false; control.externalChange = false; control.actionStatus = ""; control.readSettings() } }
                     Action { label: qsTr("Start All Outputs"); enabled: control.editable && control.settingsValid; onClicked: control.beginSession("start") }
                     Label { width: parent.width; wrapMode: Text.WrapAnywhere; text: qsTr("Sparse choices: ") + control.configPath + "\n" + qsTr("Changes are staged until Apply. Only explicit choices are saved; running scenes reload valid changes. Saves check observed changes and serialize cooperating writers. External editors do not share that lock: conflict detection is best effort, not a guarantee against concurrent overwrites."); color: "#9cb39e"; font.pixelSize: 12 }
-                    Label { width: parent.width; wrapMode: Text.WordWrap; text: qsTr("Immersion: click a dinosaur for a head and tail reaction; an egg or nest to hatch a young Brachiosaurus; open sky for a meteor; lake water for a small animal leap and splash. One hatchling, one meteor and one water jump can run together within the animal ceiling; extra clicks do not queue. Pteranodon are pterosaurs, not dinosaurs. Sound and idle remain OFF; Surface stops only owned sessions."); color: "#a8d78b"; font.pixelSize: 13 }
+                    Label { width: parent.width; wrapMode: Text.WordWrap; text: qsTr("Immersion: click a dinosaur for a head and tail reaction; an egg or nest to hatch a young Brachiosaurus; open sky for a meteor; lake water for a small animal leap and splash. One hatchling, one meteor and one water jump can run together within the animal ceiling; extra clicks do not queue. Pteranodon are pterosaurs, not dinosaurs. Automatic idle and gentle ambience are opt-in; Surface stops only owned sessions."); color: "#a8d78b"; font.pixelSize: 13 }
                 }
             }
         }

@@ -1,6 +1,6 @@
 # Name-pronunciation audio
 
-These nine MP3s are synthetic English name readings created for Omarchasaurus with **ElevenLabs on 2026-11-01**. They are not recordings of museum narrators, performances recorded specifically for this project by the voice contributor, or prehistoric animal calls. The website hosts the finished files itself: listeners need no ElevenLabs account, API key, speech engine or voice-model download. The terminal plugin remains silent.
+These nine MP3s are synthetic English name readings created for Omarchasaurus with **ElevenLabs on 2026-11-01**. They are not recordings of museum narrators, performances recorded specifically for this project by the voice contributor, or prehistoric animal calls. The website hosts the finished files itself: listeners need no ElevenLabs account, API key, speech engine or voice-model download. The terminal plugin never plays these recordings or imitation animal calls; its optional local wind/water ambience is synthesized offline and off by default.
 
 ## Rights and sources
 

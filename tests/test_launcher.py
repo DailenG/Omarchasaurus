@@ -1,4 +1,8 @@
 import fcntl
+from contextlib import redirect_stderr, redirect_stdout
+import io
+import importlib.machinery
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -10,6 +14,7 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest.mock import patch, Mock
 
 ROOT = Path(__file__).resolve().parents[1]
 LAUNCHER = ROOT / 'scripts/launch-dinosaurs'
@@ -492,6 +497,74 @@ class LauncherSessions(unittest.TestCase):
                 self.assertTrue(endpoint.is_symlink())
                 self.assertEqual(victim.read_text(), 'unchanged')
         self.assertEqual(self.records(), [])
+
+
+class AutomaticLauncherGuards(unittest.TestCase):
+    def setUp(self):
+        with patch.object(sys, 'path', [str(ROOT / 'scripts'), *sys.path]):
+            loader = importlib.machinery.SourceFileLoader('idle_guard_launcher', str(LAUNCHER))
+            spec = importlib.util.spec_from_loader(loader.name, loader)
+            self.launcher = importlib.util.module_from_spec(spec)
+            loader.exec_module(self.launcher)
+            import idle_integration
+            self.idle = idle_integration
+
+    def test_automatic_skip_is_harmless_and_does_not_create_runtime_state(self):
+        with patch.object(self.launcher, 'automatic_allowed', return_value=False), \
+                patch.object(self.launcher, 'runtime_directory') as runtime, \
+                redirect_stdout(io.StringIO()):
+            self.assertEqual(self.launcher.coordinate('start', automatic=True), 0)
+            runtime.assert_not_called()
+
+    def test_manual_and_preview_never_consult_automatic_policy(self):
+        for mode in ('start', 'preview'):
+            with self.subTest(mode=mode), \
+                    patch.object(self.launcher, 'automatic_allowed') as policy, \
+                    patch.object(self.launcher, 'runtime_directory', side_effect=ValueError('fixture boundary')):
+                with self.assertRaisesRegex(ValueError, 'fixture boundary'):
+                    self.launcher.coordinate(mode)
+                policy.assert_not_called()
+
+    def test_existing_standard_window_blocks_auto_but_only_our_own_outputs_are_exempt(self):
+        client = {'class': 'org.omarchy.screensaver', 'pid': 123}
+        with patch.object(self.idle, 'idle_status', return_value={'eligible': True}) as policy, \
+                patch.object(self.launcher, 'hypr_objects', return_value=[client]):
+            self.assertFalse(self.launcher.automatic_allowed())
+            policy.assert_not_called()
+            self.assertTrue(self.launcher.automatic_allowed([Mock(pid=123)]))
+            self.assertFalse(self.launcher.automatic_allowed([Mock(pid=456)]))
+
+    def test_policy_is_fresh_and_checked_after_compositor_query_every_time(self):
+        calls = []
+        def clients(kind):
+            calls.append(kind)
+            return []
+        def status():
+            calls.append('policy')
+            return {'eligible': len(calls) == 2}
+        with patch.object(self.idle, 'idle_status', side_effect=status), \
+                patch.object(self.launcher, 'hypr_objects', side_effect=clients):
+            self.assertTrue(self.launcher.automatic_allowed())
+            self.assertFalse(self.launcher.automatic_allowed())
+        self.assertEqual(calls, ['clients', 'policy', 'clients', 'policy'])
+
+    def test_malformed_compositor_query_fails_closed(self):
+        with patch.object(self.launcher, 'hypr_objects', side_effect=ValueError('bad transport')):
+            self.assertFalse(self.launcher.automatic_allowed())
+
+    def test_automatic_flag_only_accepts_start_and_reaches_coordinator(self):
+        for command in ('preview', 'stop', 'status', 'configure'):
+            with self.subTest(command=command), \
+                    patch.object(sys, 'argv', [str(LAUNCHER), command, '--automatic']), \
+                    patch.object(self.launcher, 'coordinate') as coordinator, \
+                    redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit):
+                    self.launcher.main()
+                coordinator.assert_not_called()
+        with patch.object(sys, 'argv', [str(LAUNCHER), 'start', '--automatic']), \
+                patch.object(self.launcher, 'coordinate', return_value=0) as coordinator:
+            self.assertEqual(self.launcher.main(), 0)
+            coordinator.assert_called_once_with('start', False, None, True)
 
 
 class SettingsPersistence(unittest.TestCase):

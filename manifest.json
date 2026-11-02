@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "id": "dailen.omarchasaurus",
   "name": "Omarchasaurus",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "author": "Dailen Gunter",
   "license": "MIT",
-  "description": "A truecolor ASCII dinosaur valley inside a real terminal, with a tray control room. Manual start only; idle integration is off.",
+  "description": "A truecolor ASCII dinosaur valley inside a real terminal, with a tray control room, optional automatic idle activation and gentle local ambience.",
   "kinds": ["service", "overlay"],
   "keepLoaded": false,
-  "entryPoints": {"service": "qml/0.3.0/Service.qml", "overlay": "qml/0.3.0/Config.qml"}
+  "entryPoints": {"service": "qml/0.4.0/Service.qml", "overlay": "qml/0.4.0/Config.qml"}
 }

@@ -64,6 +64,24 @@ class TerminalBehavior(unittest.TestCase):
                     decoder.feed(report + b'\x1b[<0;12;8Mq', 1),
                     [('click', (11, 7)), ('key', b'q')])
                 self.assertFalse(decoder.data)
+        malformed_sequences = [
+            b'\x1b[<35;-1;10M',
+            b'\x1b[<35;10;-5M',
+            b'\x1b[<35;10M',
+            b'\x1b[<35;10;10;1M',
+            b'\x1b[<35;;10M',
+        ]
+        for raw in malformed_sequences:
+            with self.subTest(raw=raw):
+                decoder = Input()
+                self.assertEqual(
+                    decoder.feed(raw + b'\x1b[<0;4;3Mq', 1),
+                    [('click', (3, 2)), ('key', b'q')])
+                self.assertFalse(decoder.data)
+        stalled = Input()
+        self.assertEqual(stalled.feed(b'\x1b[<35;-1', 1.0), [])
+        self.assertEqual(stalled.feed(b'', 1.2), [])
+        self.assertFalse(stalled.data)
 
     def test_mouse_numeric_upper_bounds_remain_valid_zero_based_positions(self):
         decoder = Input()

@@ -1,10 +1,44 @@
 {
   "schemaVersion": 1,
+  "seed": 42,
   "preset": "morning",
   "motion": {
+    "parallaxStrength": 1.0,
+    "speed": 1.0,
     "reducedMotion": false
   },
+  "scenery": {
+    "treeDensity": 1.0,
+    "cycadDensity": 1.0,
+    "fernDensity": 1.0,
+    "rockDensity": 1.0,
+    "flowerDensity": 1.0,
+    "lilyPadDensity": 1.0,
+    "cloudDensity": 1.0,
+    "nestEnabled": true
+  },
+  "animals": {
+    "trexEnabled": true,
+    "triceratopsEnabled": true,
+    "stegosaurusEnabled": true,
+    "ankylosaurusEnabled": true,
+    "parasaurolophusEnabled": true,
+    "plesiosaurusEnabled": true,
+    "diplodocusEnabled": true,
+    "diplodocusResident": false,
+    "pteranodonEnabled": true
+  },
+  "population": {
+    "maxVisible": 8,
+    "maxFamilies": 1,
+    "randomVisitors": false
+  },
+  "sound": {
+    "enabled": false,
+    "volume": 20
+  },
   "integration": {
-    "idleEnabled": false
+    "idleEnabled": false,
+    "exitOnPointerMotion": true
   }
 }

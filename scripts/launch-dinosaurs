@@ -17,7 +17,7 @@ import sys
 import time
 
 from event_preview import EVENTS
-from bounded_process import exited, finish_group, finish_groups, run_bounded
+from bounded_process import exited, finish_group, finish_groups, run_bounded, supervise
 from safe_io import (Directory, atomic_json, diagnostic, open_file, parse_json,
                      read_json, remove_session, remove_socket, writer_lock)
 from session_control import ControlServer
@@ -147,57 +147,20 @@ def place_window(child, monitor, preview, stopping, fullscreen=False):
         raise ValueError("Timed out waiting for owned terminal on " + monitor["name"])
 
 
-def supervise_session(mode, fullscreen=False, test_event=None):
-    """Let a coordinator reap its terminals even if QML kills its direct child."""
-    import ctypes
-
-    child_pid = None
-    stopping = False
-    parent_pid = os.getpid()
-    old_handlers = {}
-
-    def forward(signum, frame):
-        nonlocal stopping
-        stopping = True
-        if child_pid:
-            try:
-                os.kill(child_pid, signum)
-            except ProcessLookupError:
-                pass
-
-    def early_stop(signum, frame):
-        # No terminals exist until run_session replaces this handler. Its
-        # existing finally blocks still release any partially opened resources.
-        raise SystemExit(0)
-
-    for signum in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
-        old_handlers[signum] = signal.signal(signum, forward)
+def automatic_allowed(children=()):
+    from idle_integration import idle_status
+    owned = {child.pid for child in children}
     try:
-        child_pid = os.fork()
-        if child_pid == 0:
-            child_pid = None
-            for signum in old_handlers:
-                signal.signal(signum, early_stop)
-            libc = ctypes.CDLL(None, use_errno=True)
-            prctl = libc.prctl
-            prctl.argtypes = [ctypes.c_int, ctypes.c_ulong, ctypes.c_ulong,
-                             ctypes.c_ulong, ctypes.c_ulong]
-            prctl.restype = ctypes.c_int
-            # Linux PR_SET_PDEATHSIG. Quickshell destroys Process with SIGKILL;
-            # only the guardian dies immediately, not the cleanup coordinator.
-            if prctl(1, signal.SIGTERM, 0, 0, 0) != 0:
-                raise OSError(ctypes.get_errno(), "Cannot protect session cleanup")
-            if stopping or os.getppid() != parent_pid:
-                return 0
-            return coordinate(mode, fullscreen, test_event)
-        if stopping:
-            forward(signal.SIGTERM, None)
-        _, status = os.waitpid(child_pid, 0)
-        code = os.waitstatus_to_exitcode(status)
-        return code if code >= 0 else 128 - code
-    finally:
-        for signum, handler in old_handlers.items():
-            signal.signal(signum, handler)
+        if any(client.get("class") == "org.omarchy.screensaver"
+               and client.get("pid") not in owned
+               for client in hypr_objects("clients")):
+            return False
+        # Host lock/Keep Awake/lease policy is the final bounded discovery,
+        # rather than leaving another compositor subprocess before spawn.
+        return idle_status()["eligible"]
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return False
+
 
 
 
@@ -209,7 +172,10 @@ def session_message(text, error=False):
     except BrokenPipeError:
         pass
 
-def coordinate(mode, fullscreen=False, test_event=None):
+def coordinate(mode, fullscreen=False, test_event=None, automatic=False):
+    if automatic and not automatic_allowed():
+        session_message("Automatic start skipped: idle integration is not eligible")
+        return 0
     with runtime_directory() as root:
         lock = open_file(root.fd, mode + ".lock", os.O_RDWR, private=True, create=True)
         try:
@@ -222,12 +188,12 @@ def coordinate(mode, fullscreen=False, test_event=None):
                     return 1
                 print("An Omarchasaurus " + mode + " session is already running", flush=True)
                 return 0
-            return run_session(root, mode, fullscreen, test_event)
+            return run_session(root, mode, fullscreen, test_event, automatic)
         finally:
             os.close(lock)
 
 
-def run_session(root, mode, fullscreen, test_event):
+def run_session(root, mode, fullscreen, test_event, automatic=False):
     session = None
     server = None
     children = []
@@ -291,8 +257,16 @@ def run_session(root, mode, fullscreen, test_event):
                     args.extend(("--test-event", test_event))
                 child = None
                 try:
-                    child = subprocess.Popen(terminal_command(args, preview, monitor["name"]),
-                                             start_new_session=True, stdin=subprocess.DEVNULL)
+                    command = terminal_command(args, preview, monitor["name"])
+                    # Discovery/focus/selection may take time. Recheck just
+                    # before each spawn, ignoring only our own windows.
+                    if automatic and not automatic_allowed(children):
+                        stop_requested = True
+                        break
+                    child = subprocess.Popen(command, start_new_session=True,
+                                             stdin=subprocess.DEVNULL,
+                                             stdout=subprocess.DEVNULL,
+                                             stderr=subprocess.DEVNULL)
                     children.append(child)
                     place_window(child, monitor, preview, control, fullscreen)
                 except (OSError, ValueError, subprocess.SubprocessError) as error:
@@ -304,7 +278,7 @@ def run_session(root, mode, fullscreen, test_event):
         finally:
             if not stop_requested:
                 focus_monitor(focused["name"])
-        session_message(f"Omarchasaurus {mode}: {len(children)} owned terminal(s) · idle OFF")
+        session_message(f"Omarchasaurus {mode}: {len(children)} owned terminal(s)")
         while children and not control():
             try:
                 message = read_json(session.fd, "dismissed.json", limit=4096, private=True)
@@ -422,7 +396,7 @@ def save_settings(text, expected):
     value = parse_document(text)
     previous = parse_document(expected) if expected is not None else None
     target = config_path()
-    with Directory.open(target.parent, private=True, create=True) as directory:
+    with Directory.open(target.parent, create=True) as directory:
         with writer_lock(directory.fd, "settings.lock"):
             current = read_json(directory.fd, target.name, blank=True, missing=True)
             if not isinstance(current, dict):
@@ -475,6 +449,8 @@ def main():
     parser.add_argument("--fullscreen", action="store_true", help="Open interactive preview fullscreen on the focused output")
     parser.add_argument("--supervised", action="store_true",
                         help="Keep owned cleanup alive if the QML controller is unloaded")
+    parser.add_argument("--automatic", action="store_true",
+                        help="Start only while a live owned idle lease and host policy allow it")
     parser.add_argument("--test-event", choices=EVENTS,
                         help="Temporarily test one unique event in a fresh preview; Surface any existing preview first")
     args = parser.parse_args()
@@ -484,12 +460,29 @@ def main():
         parser.error("--test-event is only valid with preview")
     if args.supervised and args.command not in ("start", "preview"):
         parser.error("--supervised is only valid with start or preview")
+    if args.automatic and args.command != "start":
+        parser.error("--automatic is only valid with start")
     if args.settings is not None and args.command not in ("save-settings", "resolve-settings", "randomize-settings"):
         parser.error(args.command + " takes no JSON argument")
     try:
         if args.command == "configure":
-            installed = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "omarchy/plugins/dailen.omarchasaurus"
-            if installed.is_dir():
+            raw_cfg = os.environ.get("XDG_CONFIG_HOME") or ""
+            if raw_cfg:
+                cfg_base = Path(raw_cfg)
+                if not cfg_base.is_absolute():
+                    raise ValueError("XDG_CONFIG_HOME must be absolute")
+            else:
+                raw_home = os.environ.get("HOME") or ""
+                if not raw_home or not Path(raw_home).is_absolute():
+                    raise ValueError("HOME must be absolute")
+                cfg_base = Path(raw_home) / ".config"
+            installed_dir = None
+            try:
+                installed_dir = Directory.open(cfg_base / "omarchy/plugins/dailen.omarchasaurus")
+            except FileNotFoundError:
+                pass
+            if installed_dir is not None:
+                installed_dir.close()
                 plugins = object_list(run_bounded(["omarchy-shell", "shell", "listPlugins"]),
                                       "Omarchy plugin registry", 256)
                 if any(isinstance(plugin, dict) and plugin.get("id") == "dailen.omarchasaurus"
@@ -509,8 +502,8 @@ def main():
                                          "call", "omarchasaurus-control", "open"])
             os.execvp("quickshell", ["quickshell", "--no-duplicate", "--path", config])
         if args.command in ("start", "preview"):
-            run = supervise_session if args.supervised else coordinate
-            return run(args.command, args.fullscreen, args.test_event)
+            arguments = (args.command, args.fullscreen, args.test_event, args.automatic)
+            return supervise(coordinate, *arguments) if args.supervised else coordinate(*arguments)
         if args.command in ("save-settings", "resolve-settings", "randomize-settings"):
             if args.settings is None:
                 parser.error(args.command + " requires a JSON object")

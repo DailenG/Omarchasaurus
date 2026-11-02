@@ -21,10 +21,11 @@ from canvas import BACKGROUNDS, Canvas
 from engine import ACTOR_NAMES, World
 from hatching import NEST_DEPTH
 from layout import METEOR_DEPTH, WATER_DEPTH
-from configuration import config_path, load_document
+from configuration import config_path, load_document, reload_document
 from safe_io import Directory, atomic_json, diagnostic, held_directory, open_file, read_json
 from character_art import draw_scene
 from event_preview import EVENTS, event_world, preview_settings
+from ambience import AmbientAudio
 
 _MAX_SGR_COORDINATE = 2_147_483_647
 
@@ -34,6 +35,11 @@ class Input:
     def __init__(self):
         self.data = bytearray()
         self.since = 0.0
+
+    def _consume(self, count, now):
+        del self.data[:count]
+        if self.data:
+            self.since = now
 
     def feed(self, data, now):
         if data and not self.data:
@@ -46,7 +52,7 @@ class Input:
         while self.data:
             if self.data[0] != 27:
                 result.append(('key', bytes(self.data[:1])))
-                del self.data[:1]
+                self._consume(1, now)
                 continue
             p = bytes(self.data)
             if b'\x1b[<'.startswith(p):
@@ -55,7 +61,7 @@ class Input:
             if p.startswith(b'\x1b[<'):
                 match = re.match(rb'\x1b\[<(\d+);(\d+);(\d+)([Mm])', p)
                 if match:
-                    del self.data[:match.end()]
+                    self._consume(match.end(), now)
                     # Bound fields before integer conversion and pointer-distance math.
                     if any(len(match[i]) > 10 for i in (1, 2, 3)):
                         continue
@@ -66,16 +72,26 @@ class Input:
                     if match[4] == b'M':
                         result.append(('motion' if code & 32 else 'click', (x-1, y-1)))
                     continue
-                if len(p) < 64 and now-self.since < .08:
-                    break
+                bad_sgr = re.match(rb'\x1b\[<[\x20-\x3f]*[\x40-\x7e]', p)
+                if bad_sgr:
+                    self._consume(bad_sgr.end(), now)
+                    continue
+                partial_sgr = re.match(rb'\x1b\[<[\x20-\x3f]*\Z', p)
+                if partial_sgr:
+                    if len(p) < 64 and now-self.since < .08:
+                        break
+                    self._consume(len(p), now)
+                    continue
+                self._consume(3, now)
+                continue
             if p.startswith((b'\x1b_', b'\x1b]', b'\x1bP')):
                 end = p.find(b'\x1b\\')
                 bell = p.find(b'\x07')
                 if end >= 0:
-                    del self.data[:end+2]
+                    self._consume(end+2, now)
                     continue
                 if bell >= 0:
-                    del self.data[:bell+1]
+                    self._consume(bell+1, now)
                     continue
                 if now-self.since < .08:
                     break
@@ -83,7 +99,7 @@ class Input:
                 continue
             match = re.match(rb'\x1b\[[0-?]*[ -/]*[@-~]', p)
             if match:
-                del self.data[:match.end()]
+                self._consume(match.end(), now)
                 # Device attribute/status replies are not user dismissal keys.
                 if match[0][-1:] not in (b'c', b'n', b'R'):
                     result.append(('key', match[0]))
@@ -91,7 +107,7 @@ class Input:
             if len(p) == 1 and now-self.since < .08:
                 break
             result.append(('key', b'\x1b'))
-            del self.data[:1]
+            self._consume(1, now)
         return result
 
 
@@ -266,10 +282,11 @@ def animate(args, config, overrides, document):
     world = World(config)
     pending_test = args.test_event
     terminal = Terminal()
+    diagnostics = []
+    audio = AmbientAudio(report=lambda text: diagnostics.__setitem__(slice(None), [text]))
     decoder = Input()
     stopping = False
     suspending = False
-    diagnostics = []
     reload_error = None
     def stop(_sig, _frame):
         nonlocal stopping
@@ -281,7 +298,7 @@ def animate(args, config, overrides, document):
     handlers[signal.SIGTSTP] = signal.signal(signal.SIGTSTP, suspend)
     started = time.monotonic()
     last = time.monotonic_ns()
-    last_config = None
+    last_config = object()
     last_probe = 0.0
     baseline = None
     dismissed = False
@@ -300,6 +317,7 @@ def animate(args, config, overrides, document):
             if args.duration is not None and now-started >= args.duration:
                 break
             if suspending:
+                audio.close()
                 terminal.restore()
                 os.kill(os.getpid(), signal.SIGSTOP)
                 terminal.enter()
@@ -314,19 +332,20 @@ def animate(args, config, overrides, document):
                 last_probe = now
                 if not session_alive(args.session_dir, args.preview):
                     break
-                try:
-                    signature = (args.config.stat().st_mtime_ns, args.config.stat().st_size) if args.config.exists() else None
-                    if signature != last_config:
-                        candidate_document = load_document(args.config)
+                changed, last_config, candidate_document, error = reload_document(args.config, last_config)
+                if error is not None:
+                    reload_error = 'invalid reload retained last valid scene: ' + diagnostic(error)
+                elif changed and candidate_document is not None:
+                    try:
                         candidate = preview_settings(candidate_document, overrides | preview_overrides, args.test_event)
                         if candidate != world.config:
                             world.reconfigure(candidate)
                             redraw = True
                         document = candidate_document
-                        last_config = signature
                         reload_error = None
-                except (OSError, ValueError) as error:
-                    reload_error = 'invalid reload retained last valid scene: ' + diagnostic(error)
+                    except ValueError as preview_error:
+                        reload_error = 'invalid reload retained last valid scene: ' + diagnostic(preview_error)
+            audio.update(world.config['sound'])
             tick_now = time.monotonic_ns()
             width, height = dimensions()
             aspect = cell_aspect()
@@ -396,10 +415,13 @@ def animate(args, config, overrides, document):
                         diagnostics[:] = [action.diagnostic]
     finally:
         try:
-            terminal.restore()
+            audio.close()
         finally:
-            for sig, handler in handlers.items():
-                signal.signal(sig, handler)
+            try:
+                terminal.restore()
+            finally:
+                for sig, handler in handlers.items():
+                    signal.signal(sig, handler)
     if dismissed:
         notify_dismissal(args.session_dir)
     elapsed = time.monotonic()-started

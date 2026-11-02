@@ -7,14 +7,16 @@ Item {
     id: root
     property var shell: null
     property var manifest: null
-    property string statusLine: qsTr("Manual terminal sessions · idle OFF")
+    property string statusLine: qsTr("Ready · manual start and opt-in automatic idle")
     property bool standalone: false
     property bool shuttingDown: false
-    readonly property bool busy: coordinator.running || preview.running || stopper.running || control.saving || control.localEventBusy || control.finiteHelperBusy
+    readonly property bool busy: coordinator.running || preview.running || stopper.running || idleController.busy || control.saving || control.localEventBusy || control.finiteHelperBusy
     signal quitRequested()
     readonly property string pluginId: "dailen.omarchasaurus"
-    readonly property string runtimeVersion: "0.3.0"
+    readonly property string runtimeVersion: "0.4.0"
     readonly property var control: controlState
+    readonly property var idle: idleController
+    property bool automaticSession: false
     readonly property string pluginDir: decodeURIComponent(String(Qt.resolvedUrl("../../")).replace(/^file:\/\//, "").replace(/\/$/, ""))
     readonly property string launcher: pluginDir + "/scripts/launch-dinosaurs"
 
@@ -30,9 +32,19 @@ Item {
     function startSession() {
         if (shuttingDown || stopper.running) return
         if (coordinator.running) { hideControlRoom(); return }
+        automaticSession = false
+        coordinator.command = ["python3", launcher, "start", "--supervised"]
         statusLine = qsTr("Opening one truecolor terminal per output…")
         coordinator.running = true
         hideControlRoom()
+    }
+    function startAutomatic() {
+        if (shuttingDown || !idleController.armed || coordinator.running || preview.running
+                || stopper.running || control.localEventBusy || control.saving) return
+        automaticSession = true
+        coordinator.command = ["python3", launcher, "start", "--supervised", "--automatic"]
+        statusLine = qsTr("Opening automatic screensaver valley…")
+        coordinator.running = true
     }
     function stopSession() {
         if (stopper.running) return
@@ -54,6 +66,7 @@ Item {
     function shutdown() {
         shuttingDown = true
         control.shutdown()
+        idleController.shutdown()
         coordinator.stop()
         preview.stop()
     }
@@ -63,6 +76,14 @@ Item {
         controller: root
     }
 
+    IdleController {
+        id: idleController
+        helper: root.pluginDir + "/scripts/idle_integration.py"
+        desiredEnabled: controlState.persistedIdleEnabled && !root.shuttingDown
+        panelOpened: controlState.opened
+        onActivate: root.startAutomatic()
+    }
+
     BoundedProcess {
         id: coordinator
         command: ["python3", root.launcher, "start", "--supervised"]
@@ -70,10 +91,12 @@ Item {
         killGraceMs: 30000
         onOutput: function(text) { root.statusLine = text }
         onExited: function(code) {
-            if (code === 0) root.statusLine = qsTr("Session ended · idle remains OFF")
+            var wasAutomatic = root.automaticSession
+            root.automaticSession = false
+            if (code === 0) root.statusLine = wasAutomatic ? qsTr("Automatic screensaver session ended") : qsTr("Session ended")
             else {
                 root.statusLine = qsTr("Terminal session failed (exit %1): ").arg(code) + (failureReason || diagnostic(stderrText || stdoutText))
-                if (!root.shuttingDown) root.configure()
+                if (!root.shuttingDown && !wasAutomatic) root.configure()
             }
         }
     }
